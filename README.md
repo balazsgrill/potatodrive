@@ -1,0 +1,1 @@
+Windows user-space virtual file system binding to [afero](https://github.com/spf13/afero) file systems backend. Makes it possible to implement virtual file systems for windows backed by any kind of user-space implementation of virtual file system.
