@@ -310,3 +310,61 @@ func TestChangedOnBackend(t *testing.T) {
 		t.Errorf("expected %v, got %v", data, data2)
 	}
 }
+
+func TestDeletedOnBackend(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+	defer instance.stop()
+	data := []byte("something")
+	filename := "test.txt"
+	err := afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = instance.osRemoveFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = instance.fs.Stat(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			//ok
+			return
+		}
+		t.Fatal(err)
+	} else {
+		t.Error("File exists")
+	}
+}
+
+func TestUpdatedLocallyWhileOffline(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := instance.osWriteFile(filename, string(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.stop()
+
+	data = []byte("somethingelse")
+	err = instance.osWriteFile(filename, string(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.start()
+
+	data2, err := afero.ReadFile(instance.fs, filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(data, data2) {
+		t.Errorf("expected %s, got %s", string(data), string(data2))
+	}
+	instance.stop()
+}
