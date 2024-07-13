@@ -211,3 +211,102 @@ func TestListFiles(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, actual)
 	}
 }
+
+func TestExistingFolderOnBackend(t *testing.T) {
+	instance := newTestInstance(t)
+
+	foldername := "test"
+	instance.fs.Mkdir(foldername, 0x777)
+
+	instance.start()
+	defer instance.stop()
+
+	stat, err := os.Stat(instance.location + "\\" + foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if stat.IsDir() != true {
+		t.Error("Not a directory")
+	}
+}
+
+func TestFolderCreation(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+	defer instance.stop()
+
+	foldername := "test"
+	err := instance.osCreateDir(foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stat, err := instance.fs.Stat(foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat.IsDir() != true {
+		t.Error("Not a directory")
+	}
+}
+
+func TestCreatedOnBackend(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+	defer instance.stop()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data2, err := os.ReadFile(instance.location + "\\" + filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(data, data2) {
+		t.Errorf("expected %v, got %v", data, data2)
+	}
+
+}
+
+func TestChangedOnBackend(t *testing.T) {
+	instance := newTestInstance(t)
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.start()
+	defer instance.stop()
+
+	data2, err := os.ReadFile(instance.location + "\\" + filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(data, data2) {
+		t.Errorf("expected %v, got %v", data, data2)
+	}
+
+	data = []byte("somethingelse")
+	err = afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data2, err = os.ReadFile(instance.location + "\\" + filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(data, data2) {
+		t.Errorf("expected %v, got %v", data, data2)
+	}
+}
