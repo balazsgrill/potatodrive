@@ -24,6 +24,11 @@ type VirtualizationInstance struct {
 	enumerations    map[syscall.GUID]*enumerationSession
 }
 
+type Virtualization interface {
+	io.Closer
+	PerformSynchronization() error
+}
+
 type enumerationSession struct {
 	searchstr uintptr
 	countget  int
@@ -76,7 +81,44 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 		ConcurrentThreadCount:     4,
 	}
 	hr = projfs.PrjStartVirtualizing(rootPath, instance.get_callbacks(), instance, options, &instance._instanceHandle)
-	return projfs.ErrorByCode(hr)
+	err = projfs.ErrorByCode(hr)
+	if err != nil {
+		log.Printf("Error starting virtualization: %s", err)
+		return err
+	}
+	return instance.syncRemoteToLcal()
+}
+
+func (instance *VirtualizationInstance) syncRemoteToLcal() error {
+	return afero.Walk(instance.fs, "", func(path string, info fs.FileInfo, err error) error {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		localpath := instance.rootPath + "\\" + path
+		var localstate projfs.PRJ_FILE_STATE
+		hr := projfs.PrjGetOnDiskFileState(localpath, &localstate)
+		if hr != 0 {
+			return projfs.ErrorByCode(hr)
+		}
+
+		if localstate == projfs.PRJ_FILE_STATE_FULL {
+			// check if remote is newer
+			localinfo, _ := os.Stat(localpath)
+			if localinfo.ModTime().UTC().Unix() > info.ModTime().UTC().Unix() {
+				var placeholderInfo projfs.PRJ_PLACEHOLDER_INFO
+				placeholderInfo.FileBasicInfo = toBasicInfo(info)
+				instance.UpdateFileIfNeeded(path, &placeholderInfo, uint32(info.Size()), projfs.PRJ_UPDATE_ALLOW_DIRTY_METADATA, nil)
+			}
+		}
+
+		return nil
+	})
 }
 
 func (instance *VirtualizationInstance) getVirtualizationInfoFileName() string {

@@ -368,3 +368,38 @@ func TestUpdatedLocallyWhileOffline(t *testing.T) {
 	}
 	instance.stop()
 }
+
+func TestRemoveFolder(t *testing.T) {
+	foldername := "test"
+	instance := newTestInstance(t)
+	err := instance.fs.Mkdir(foldername, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	instance.start()
+	defer instance.stop()
+
+	file, err := os.Stat(instance.location + "\\" + foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file.IsDir() != true {
+		t.Error("Not a directory")
+	}
+
+	err = instance.osRemoveDir(foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = instance.fs.Stat(foldername)
+	if err != nil {
+		if os.IsNotExist(err) {
+			//ok
+			return
+		}
+		t.Fatal(err)
+	} else {
+		t.Error("File exists")
+	}
+
+}
