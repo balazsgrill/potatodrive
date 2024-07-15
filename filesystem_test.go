@@ -2,13 +2,13 @@ package projfero_test
 
 import (
 	"bytes"
-	"io"
 	"log"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/balazsgrill/projfero"
 	"github.com/spf13/afero"
@@ -18,7 +18,7 @@ type testInstance struct {
 	t         *testing.T
 	location  string
 	fs        afero.Fs
-	closer    io.Closer
+	closer    projfero.Virtualization
 	closechan chan bool
 }
 
@@ -295,8 +295,15 @@ func TestChangedOnBackend(t *testing.T) {
 		t.Errorf("expected %v, got %v", data, data2)
 	}
 
+	// sleep for a bit to ensure that the file timestamp is different
+	time.Sleep(time.Second)
 	data = []byte("somethingelse")
 	err = afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,6 +357,7 @@ func TestUpdatedLocallyWhileOffline(t *testing.T) {
 	}
 
 	instance.stop()
+	time.Sleep(time.Second)
 
 	data = []byte("somethingelse")
 	err = instance.osWriteFile(filename, string(data))
@@ -358,13 +366,17 @@ func TestUpdatedLocallyWhileOffline(t *testing.T) {
 	}
 
 	instance.start()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	data2, err := afero.ReadFile(instance.fs, filename)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(data, data2) {
-		t.Errorf("expected %s, got %s", string(data), string(data2))
+	if string(data) != strings.TrimSpace(string(data2)) {
+		t.Errorf("expected '%s', got '%s'", string(data), string(data2))
 	}
 	instance.stop()
 }

@@ -1,5 +1,5 @@
-github.com/balazsgrill/projfs v0.0.1 h1:ot7RKyspqAfLdr3QZjLZzhS6m0lcxp/VPrRELhZNh0U=
-github.com/balazsgrill/projfs v0.0.1/go.mod h1:zxk3JTKjlt3AKYJ98gJQEpJ6ZQ+qtkyuqsgfMLb5mW4=
+github.com/balazsgrill/projfs v0.0.2 h1:HyhDgJT1sgIdHd1j1OHr/YYeDauQINzd+irerpaBlUM=
+github.com/balazsgrill/projfs v0.0.2/go.mod h1:zxk3JTKjlt3AKYJ98gJQEpJ6ZQ+qtkyuqsgfMLb5mW4=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/spf13/afero v1.11.0 h1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=
