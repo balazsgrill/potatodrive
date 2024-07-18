@@ -415,3 +415,187 @@ func TestRemoveFolder(t *testing.T) {
 	}
 
 }
+
+func TestDeletedOnBackendWhileOffline(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := instance.osWriteFile(filename, string(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.stop()
+	time.Sleep(time.Second)
+
+	err = instance.fs.Remove(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = instance.fs.Stat(filename)
+	if !os.IsNotExist(err) {
+		t.Error("remote file exists")
+	}
+
+	instance.start()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(instance.location + "\\" + filename)
+	if !os.IsNotExist(err) {
+		t.Error("local file exists")
+	}
+	_, err = instance.fs.Stat(filename)
+	if !os.IsNotExist(err) {
+		t.Error("remote file exists")
+	}
+
+	instance.stop()
+}
+
+func TestDeletedLocallyWhileOffline(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := instance.osWriteFile(filename, string(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.stop()
+	time.Sleep(time.Second)
+
+	err = instance.osRemoveFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.start()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(instance.location + "\\" + filename)
+	if os.IsNotExist(err) {
+		t.Error("File should be restored locally")
+	}
+	_, err = instance.fs.Stat(filename)
+	if os.IsNotExist(err) {
+		t.Error("remote file should not be removed")
+	}
+
+	instance.stop()
+}
+
+func TestConflictWhileOfflineLocalNewer(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := instance.osWriteFile(filename, string(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.stop()
+	time.Sleep(time.Second)
+
+	data2 := []byte("something2")
+	data3 := []byte("something3")
+
+	err = afero.WriteFile(instance.fs, filename, data3, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Second)
+	err = instance.osWriteFile(filename, string(data2))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.start()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data4, err := afero.ReadFile(instance.fs, filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data2) != strings.TrimSpace(string(data4)) {
+		t.Errorf("expected '%s', got '%s'", string(data2), string(data4))
+	}
+	data5, err := os.ReadFile(instance.location + "\\" + filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data2) != strings.TrimSpace(string(data5)) {
+		t.Errorf("expected '%s', got '%s'", string(data2), string(data5))
+	}
+
+	instance.stop()
+}
+
+func TestConflictWhileOfflineRemoteNewer(t *testing.T) {
+	instance := newTestInstance(t)
+	instance.start()
+
+	data := []byte("something")
+	filename := "test.txt"
+	err := instance.osWriteFile(filename, string(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.stop()
+	time.Sleep(time.Second)
+
+	data2 := []byte("something2")
+	data3 := []byte("something3")
+
+	err = instance.osWriteFile(filename, string(data2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Second)
+	err = afero.WriteFile(instance.fs, filename, data3, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	instance.start()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data4, err := afero.ReadFile(instance.fs, filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data3) != strings.TrimSpace(string(data4)) {
+		t.Errorf("expected '%s', got '%s'", string(data3), string(data4))
+	}
+	data5, err := os.ReadFile(instance.location + "\\" + filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data3) != strings.TrimSpace(string(data5)) {
+		t.Errorf("expected '%s', got '%s'", string(data3), string(data5))
+	}
+
+	instance.stop()
+}
