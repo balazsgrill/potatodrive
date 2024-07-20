@@ -1,4 +1,4 @@
-package projfero_test
+package filesystem_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/balazsgrill/projfero"
+	"github.com/balazsgrill/projfero/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -18,7 +18,7 @@ type testInstance struct {
 	t         *testing.T
 	location  string
 	fs        afero.Fs
-	closer    projfero.Virtualization
+	closer    filesystem.Virtualization
 	closechan chan bool
 }
 
@@ -38,7 +38,7 @@ func (i *testInstance) start() {
 	started := make(chan bool)
 	var err error
 	go func() {
-		i.closer, err = projfero.StartProjecting(i.location, i.fs)
+		i.closer, err = filesystem.StartProjecting(i.location, i.fs)
 		started <- true
 		<-i.closechan
 		i.closer.Close()

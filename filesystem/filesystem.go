@@ -1,4 +1,4 @@
-package projfero
+package filesystem
 
 import (
 	"encoding/binary"
@@ -134,6 +134,7 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 	return afero.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
+		log.Printf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -198,6 +199,7 @@ func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, er
 
 func (instance *VirtualizationInstance) syncLocalToRemote() error {
 	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
+		log.Printf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -379,7 +381,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 	}
 	defer file.Close()
 	data := make([]byte, 1024*1024)
-	targetfile, err := instance.fs.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0x666)
+	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0x666)
 	if err != nil {
 		return err
 	}
@@ -464,6 +466,7 @@ func (instance *VirtualizationInstance) GetDirectoryEnumeration(callbackData *pr
 	}
 
 	for _, file := range files[session.sentcount:] {
+		session.sentcount += 1
 		fname := filepath.Base(file.Name())
 		if strings.HasPrefix(fname, ".") {
 			continue
@@ -477,7 +480,6 @@ func (instance *VirtualizationInstance) GetDirectoryEnumeration(callbackData *pr
 		}
 		dirEntry := toBasicInfo(file)
 		projfs.PrjFillDirEntryBuffer(file.Name(), &dirEntry, dirEntryBufferHandle)
-		session.sentcount += 1
 	}
 	log.Printf("Sent %d entries", session.sentcount)
 	return 0
@@ -531,7 +533,7 @@ func (instance *VirtualizationInstance) GetPlaceholderInfo(callbackData *projfs.
 
 func (instance *VirtualizationInstance) GetFileData(callbackData *projfs.PRJ_CALLBACK_DATA, byteOffset uint64, length uint32) uintptr {
 	filename := instance.path_localToRemote(callbackData.GetFilePathName())
-	log.Printf("GetFileData %s", filename)
+	log.Printf("GetFileData %s[%d]@%d", filename, length, byteOffset)
 	file, err := instance.fs.Open(filename)
 	if err != nil {
 		log.Printf("Error opening file %s: %s", filename, err)
@@ -539,7 +541,19 @@ func (instance *VirtualizationInstance) GetFileData(callbackData *projfs.PRJ_CAL
 	}
 	defer file.Close()
 	buffer := make([]byte, length)
-	_, err = file.ReadAt(buffer, int64(byteOffset))
+
+	var n int
+	var count uint32
+	for count < length {
+		n, err = file.ReadAt(buffer[count:], int64(byteOffset+uint64(count)))
+		count += uint32(n)
+		if err == io.EOF {
+			err = nil
+			break
+		}
+	}
+
+	log.Printf("Read %d bytes", count)
 	if err != nil {
 		log.Printf("Error reading file %s: %s", filename, err)
 		return uintptr(syscall.EIO)

@@ -26,3 +26,10 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+    
+    - name: Build
+      run: go build -o potatos3.exe ./cmd/potatos3
+    - uses: actions/upload-artifact@v4
+      with:
+        name: potatos3.exe
+        path: potatos3.exe
