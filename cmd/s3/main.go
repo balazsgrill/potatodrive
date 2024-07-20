@@ -13,9 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/balazsgrill/projfero/filesystem"
 	s3 "github.com/fclairamb/afero-s3"
+	"golang.org/x/sys/windows/registry"
 )
 
 func main() {
+	regkey := flag.String("regkey", "", "Registry key that holds configuration")
 	endpoint := flag.String("endpoint", "", "S3 endpoint")
 	accessKeyID := flag.String("keyid", "", "Access Key ID")
 	secretAccessKey := flag.String("secred", "", "Access Key Secret")
@@ -24,6 +26,46 @@ func main() {
 	bucket := flag.String("bucket", "", "Bucket")
 	localpath := flag.String("localpath", "", "Local folder")
 	flag.Parse()
+
+	if *regkey != "" {
+		key, err := registry.OpenKey(registry.CURRENT_USER, *regkey, registry.QUERY_VALUE)
+		if err != nil {
+			log.Panic(err)
+		}
+		*endpoint, _, err = key.GetStringValue("Endpoint")
+		if err != nil {
+			log.Panic(err)
+		}
+		*accessKeyID, _, err = key.GetStringValue("KeyID")
+		if err != nil {
+			log.Panic(err)
+		}
+		*secretAccessKey, _, err = key.GetStringValue("KeySecret")
+		if err != nil {
+			log.Panic(err)
+		}
+		useSSLint, _, err := key.GetIntegerValue("UseSSL")
+		if err != nil {
+			log.Panic(err)
+		}
+		*useSSL = useSSLint != 0
+		*region, _, err = key.GetStringValue("Region")
+		if err != nil {
+			log.Panic(err)
+		}
+		*bucket, _, err = key.GetStringValue("Bucket")
+		if err != nil {
+			log.Panic(err)
+		}
+		*localpath, _, err = key.GetStringValue("Directory")
+		if err != nil {
+			log.Panic(err)
+		}
+	}
+
+	if *endpoint == "" || *accessKeyID == "" || *secretAccessKey == "" || *region == "" || *bucket == "" || *localpath == "" {
+		log.Panic("Missing configuration")
+	}
 
 	sess, _ := session.NewSession(&aws.Config{
 		Region:           aws.String(*region),
