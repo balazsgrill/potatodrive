@@ -1,4 +1,4 @@
-package main
+package bindings
 
 import (
 	"io/fs"

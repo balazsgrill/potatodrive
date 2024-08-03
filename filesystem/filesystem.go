@@ -12,7 +12,7 @@ import (
 
 	"C"
 
-	"github.com/balazsgrill/projfs"
+	"github.com/balazsgrill/potatodrive/projfs"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )

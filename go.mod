@@ -1,11 +1,10 @@
-module github.com/balazsgrill/projfero
+module github.com/balazsgrill/potatodrive
 
 go 1.21.0
 
 require (
 	fyne.io/fyne/v2 v2.5.0
 	github.com/aws/aws-sdk-go v1.54.20
-	github.com/balazsgrill/projfs v0.0.2
 	github.com/fclairamb/afero-s3 v0.3.1
 	github.com/google/uuid v1.6.0
 	github.com/spf13/afero v1.11.0
@@ -43,5 +42,3 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-//replace github.com/balazsgrill/projfs => ../projfs

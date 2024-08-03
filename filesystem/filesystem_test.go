@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/balazsgrill/projfero/filesystem"
+	"github.com/balazsgrill/potatodrive/filesystem"
 	"github.com/spf13/afero"
 )
 
