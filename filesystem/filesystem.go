@@ -93,7 +93,12 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 		log.Printf("Error starting virtualization: %s", err)
 		return err
 	}
-	return instance.syncRemoteToLocal()
+	err = instance.syncRemoteToLocal()
+	if err != nil {
+		log.Printf("Initial sync failed: %s", err)
+		return nil
+	}
+	return nil
 }
 
 func (instance *VirtualizationInstance) path_localToRemote(path string) string {

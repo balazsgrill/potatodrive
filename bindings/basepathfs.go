@@ -1,3 +1,6 @@
+/*
+This file is a fork of https://github.com/spf13/afero/blob/master/basepath.go modified to always use "/" as separator regardless of the host system
+*/
 package bindings
 
 import (

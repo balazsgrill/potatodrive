@@ -10,13 +10,13 @@ import (
 )
 
 func main() {
-	regkey := flag.String("regkey", "", "Registry key that holds configuration")
+	regkey := flag.String("regkey", "", "Registry key that holds configuration. If set, all other arguments are ignored")
 	config := &cs3.Config{}
 	bindings.ConfigToFlags(config)
 	flag.Parse()
 
 	if *regkey != "" {
-		key, err := registry.OpenKey(registry.CURRENT_USER, *regkey, registry.QUERY_VALUE)
+		key, err := registry.OpenKey(registry.LOCAL_MACHINE, *regkey, registry.QUERY_VALUE)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -33,8 +33,9 @@ func main() {
 		log.Panic(err)
 	}
 
-	err = bindings.BindVirtualizationInstance(config.LocalPath, fs)
+	closer, err := bindings.BindVirtualizationInstance(config.LocalPath, fs)
 	if err != nil {
 		log.Panic(err)
 	}
+	bindings.CloseOnSigTerm(closer)
 }

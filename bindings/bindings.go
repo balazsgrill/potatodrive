@@ -2,6 +2,7 @@ package bindings
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -71,12 +72,27 @@ func ReadConfigFromRegistry(key registry.Key, config any) error {
 	return nil
 }
 
-func BindVirtualizationInstance(localpath string, remotefs afero.Fs) error {
+func CloseOnSigTerm(closers ...io.Closer) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	<-c
+	for _, closer := range closers {
+		closer.Close()
+	}
+	os.Exit(1)
+}
+
+type closerFunc func() error
+
+func (f closerFunc) Close() error {
+	return f()
+}
+
+func BindVirtualizationInstance(localpath string, remotefs afero.Fs) (io.Closer, error) {
 	closer, err := filesystem.StartProjecting(localpath, remotefs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	t := time.NewTicker(30 * time.Second)
@@ -84,14 +100,13 @@ func BindVirtualizationInstance(localpath string, remotefs afero.Fs) error {
 		for range t.C {
 			err = closer.PerformSynchronization()
 			if err != nil {
-				log.Panic(err)
+				log.Println(err)
 			}
 		}
 	}()
 
-	<-c
-	t.Stop()
-	closer.Close()
-	os.Exit(1)
-	return nil
+	return (closerFunc)(func() error {
+		t.Stop()
+		return closer.Close()
+	}), nil
 }
