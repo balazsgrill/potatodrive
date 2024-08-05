@@ -2,7 +2,11 @@
 
 package projfs
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/balazsgrill/potatodrive/win"
+)
 import "C"
 
 type PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT syscall.Handle
@@ -109,7 +113,7 @@ type PRJ_CALLBACK_DATA struct {
 }
 
 func (data *PRJ_CALLBACK_DATA) GetFilePathName() string {
-	return GetString(data.FilePathName)
+	return win.GetString(data.FilePathName)
 }
 
 type PRJ_CALLBACKS struct {

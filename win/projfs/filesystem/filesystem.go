@@ -12,7 +12,7 @@ import (
 
 	"C"
 
-	"github.com/balazsgrill/potatodrive/projfs"
+	"github.com/balazsgrill/potatodrive/win/projfs"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/balazsgrill/potatodrive/win"
 )
 
 type VirtualizationInstance struct {
@@ -81,7 +83,7 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 	options := &projfs.PRJ_STARTVIRTUALIZING_OPTIONS{
 		NotificationMappings: &projfs.PRJ_NOTIFICATION_MAPPING{
 			NotificationBitMask: projfs.PRJ_NOTIFY_NEW_FILE_CREATED | projfs.PRJ_NOTIFY_FILE_OVERWRITTEN | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_DELETED | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_MODIFIED,
-			NotificationRoot:    projfs.GetPointer(""),
+			NotificationRoot:    win.GetPointer(""),
 		},
 		NotificationMappingsCount: 1,
 		PoolThreadCount:           4,

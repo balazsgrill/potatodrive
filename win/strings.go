@@ -1,6 +1,6 @@
 //go:build windows
 
-package projfs
+package win
 
 import (
 	"syscall"
