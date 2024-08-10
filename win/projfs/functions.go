@@ -3,7 +3,6 @@
 package projfs
 
 import (
-	"fmt"
 	"syscall"
 	"unsafe"
 
@@ -32,14 +31,6 @@ var (
 	prjWritePlaceholderInfo          = projectedfslib.NewProc("PrjWritePlaceholderInfo")
 	prjWritePlaceholderInfo2         = projectedfslib.NewProc("PrjWritePlaceholderInfo2")
 )
-
-func ErrorByCode(result uintptr) error {
-	if result == 0 {
-		return nil
-	} else {
-		return fmt.Errorf("error result: %x", result)
-	}
-}
 
 func PrjAllocateAlignedBuffer(namespaceVirtualizationContext PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT, size uint32) uintptr {
 	res, _, _ := prjAllocateAlignedBuffer.Call(uintptr(namespaceVirtualizationContext), uintptr(size))

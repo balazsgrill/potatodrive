@@ -11,10 +11,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/balazsgrill/potatodrive/win/projfs/filesystem"
+	"github.com/balazsgrill/potatodrive/win"
+	cfapi "github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
+	prjfs "github.com/balazsgrill/potatodrive/win/projfs/filesystem"
 	"github.com/spf13/afero"
 	"golang.org/x/sys/windows/registry"
 )
+
+const UseCFAPI bool = true
 
 func ConfigToFlags(config any) {
 	structPtrValue := reflect.ValueOf(config)
@@ -90,7 +94,13 @@ func (f closerFunc) Close() error {
 }
 
 func BindVirtualizationInstance(localpath string, remotefs afero.Fs) (io.Closer, error) {
-	closer, err := filesystem.StartProjecting(localpath, remotefs)
+	var closer win.Virtualization
+	var err error
+	if UseCFAPI {
+		closer, err = cfapi.StartProjecting(localpath, remotefs)
+	} else {
+		closer, err = prjfs.StartProjecting(localpath, remotefs)
+	}
 	if err != nil {
 		return nil, err
 	}

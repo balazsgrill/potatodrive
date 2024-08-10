@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/projfs/filesystem"
+	"github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -82,6 +82,10 @@ func TestExistingFileOnBackend(t *testing.T) {
 
 	instance.start()
 	defer instance.stop()
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	data2, err := os.ReadFile(instance.location + "\\" + filename)
 	if err != nil {
@@ -100,11 +104,19 @@ func TestFileCreation(t *testing.T) {
 
 	filename := "test.txt"
 	data := "something"
+	log.Printf("Writing %s to %s\n", data, filename)
 	err := instance.osWriteFile(filename, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	log.Printf("Sycnhronizing\n")
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Printf("Reading %s from %s\n", data, filename)
 	data2, err := afero.ReadFile(instance.fs, filename)
 	if err != nil {
 		t.Fatal(err)
@@ -128,12 +140,22 @@ func TestUpdateExistingFileOnBackend(t *testing.T) {
 	instance.start()
 	defer instance.stop()
 
+	// sleep to make sure that the file is newer
+	time.Sleep(1 * time.Second)
+	log.Println("Changing file")
 	data = "somethingelse"
 	err = instance.osWriteFile(filename, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	log.Println("Synchronizing")
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("Check content on remote")
 	data2, err := afero.ReadFile(instance.fs, filename)
 	if err != nil {
 		t.Fatal(err)
@@ -157,6 +179,12 @@ func TestDeleteExistingFileOnBackend(t *testing.T) {
 	defer instance.stop()
 
 	err = instance.osRemoveFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("Synchronizing")
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,6 +215,12 @@ func TestListFiles(t *testing.T) {
 
 	filename2 := "test2.txt"
 	err = instance.osWriteFile(filename2, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	log.Println("Synchronizing")
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,6 +276,13 @@ func TestFolderCreation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	log.Println("Synchronizing")
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	stat, err := instance.fs.Stat(foldername)
 	if err != nil {
 		t.Fatal(err)
@@ -259,6 +300,11 @@ func TestCreatedOnBackend(t *testing.T) {
 	data := []byte("something")
 	filename := "test.txt"
 	err := afero.WriteFile(instance.fs, filename, data, 0x777)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +375,16 @@ func TestDeletedOnBackend(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = instance.osRemoveFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,7 +455,12 @@ func TestRemoveFolder(t *testing.T) {
 		t.Error("Not a directory")
 	}
 
+	log.Printf("Removing folder %s", foldername)
 	err = instance.osRemoveDir(foldername)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,6 +489,10 @@ func TestDeletedOnBackendWhileOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
 	instance.stop()
 	time.Sleep(time.Second)
 
@@ -471,6 +535,10 @@ func TestDeletedLocallyWhileOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = instance.closer.PerformSynchronization()
+	if err != nil {
+		t.Fatal(err)
+	}
 	instance.stop()
 	time.Sleep(time.Second)
 
