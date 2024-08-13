@@ -195,7 +195,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 	}
 	defer file.Close()
 	data := make([]byte, 1024*1024)
-	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0x666)
+	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func (instance *VirtualizationInstance) handleDeletion(localpath string) {
 	remoteparent := instance.path_localToRemote(parentpath)
 	remotepath := remoteparent + "/" + filepath.Base(localpath)
 	remotepath = strings.TrimPrefix(remotepath, "/")
-	err := instance.fs.Remove(remotepath)
+	err := instance.fs.RemoveAll(remotepath)
 	if err != nil {
 		log.Printf("deleteCompletion: remove %s failed: %v", remotepath, err)
 	}

@@ -9,18 +9,20 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/balazsgrill/potatodrive/bindings/utils"
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
-	"github.com/spf13/afero"
 )
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
-	return afero.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
+	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
 		log.Printf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
+			log.Printf("Not exists: %v", err)
 			return nil
 		}
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 

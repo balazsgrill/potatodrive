@@ -6,13 +6,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/balazsgrill/potatodrive/bindings"
+	"github.com/balazsgrill/potatodrive/bindings/utils"
 	s3 "github.com/fclairamb/afero-s3"
 	"github.com/spf13/afero"
 )
 
 type Config struct {
-	LocalPath string `flag:"localpath,Local folder" reg:"LocalPath"`
 	Endpoint  string `flag:"endpoint,S3 endpoint" reg:"Endpoint"`
 	Region    string `flag:"region,Region" reg:"Region"`
 	Bucket    string `flag:"bucket,Bucket" reg:"Bucket"`
@@ -24,9 +23,6 @@ type Config struct {
 func (c *Config) Validate() error {
 	if c.Endpoint == "" {
 		return errors.New("endpoint is mandatory")
-	}
-	if c.LocalPath == "" {
-		return errors.New("localpath is mandatory")
 	}
 	if c.Region == "" {
 		return errors.New("region is mandatory")
@@ -57,6 +53,6 @@ func (c *Config) ToFileSystem() (afero.Fs, error) {
 
 	fs := s3.NewFs(c.Bucket, sess)
 	fs.MkdirAll("root", 0777)
-	rootfs := bindings.NewBasePathFs(fs, "root")
+	rootfs := utils.NewBasePathFs(fs, "root")
 	return rootfs, nil
 }

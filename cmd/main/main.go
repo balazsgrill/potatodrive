@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/balazsgrill/potatodrive/bindings"
-	cs3 "github.com/balazsgrill/potatodrive/bindings/s3"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -23,12 +22,20 @@ func main() {
 	var instances []io.Closer
 
 	for _, keyname := range keys {
-		config := &cs3.Config{}
+
 		key, err := registry.OpenKey(parentkey, keyname, registry.QUERY_VALUE)
 		if err != nil {
 			log.Printf("Open key: %v", err)
 			continue
 		}
+
+		var basec bindings.BaseConfig
+		err = bindings.ReadConfigFromRegistry(key, &basec)
+		if err != nil {
+			log.Printf("Get base config: %v", err)
+			continue
+		}
+		config := bindings.CreateConfigByType(basec.Type)
 		bindings.ReadConfigFromRegistry(key, config)
 		err = config.Validate()
 		if err != nil {
@@ -41,12 +48,12 @@ func main() {
 			continue
 		}
 
-		log.Printf("Starting %s on %s", keyname, config.LocalPath)
-		c, err := bindings.BindVirtualizationInstance(config.LocalPath, fs)
+		log.Printf("Starting %s on %s", keyname, basec.LocalPath)
+		c, err := bindings.BindVirtualizationInstance(basec.LocalPath, fs)
 		if err != nil {
 			log.Println(err)
 		}
-		log.Printf("%s ended", keyname)
+		log.Printf("%s started", keyname)
 		instances = append(instances, c)
 
 	}

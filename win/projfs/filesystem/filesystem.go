@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/balazsgrill/potatodrive/bindings/utils"
 	"github.com/balazsgrill/potatodrive/win"
 )
 
@@ -135,7 +136,7 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 }
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
-	return afero.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
+	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
 		log.Printf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
 			return nil
@@ -374,7 +375,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 	}
 	defer file.Close()
 	data := make([]byte, 1024*1024)
-	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0x666)
+	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}

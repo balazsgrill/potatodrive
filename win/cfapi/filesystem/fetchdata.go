@@ -10,8 +10,34 @@ import (
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 )
 
+const BUFFER_SIZE int64 = 1024 * 1024
+
 func (instance *VirtualizationInstance) callback_getRemoteFilePath(info *cfapi.CF_CALLBACK_INFO) string {
 	return instance.path_localToRemote(win.GetString(info.VolumeDosName) + win.GetString(info.NormalizedPath))
+}
+
+type transferBuffer struct {
+	info       *cfapi.CF_CALLBACK_INFO
+	instance   *VirtualizationInstance
+	transfer   cfapi.CF_OPERATION_PARAMETERS_TransferData
+	buffer     []byte
+	count      int64
+	byteOffset int64
+}
+
+func (tb *transferBuffer) send() error {
+	if tb.count == 0 {
+		return nil
+	}
+	tb.transfer.Buffer = uintptr(unsafe.Pointer(&tb.buffer[0]))
+	tb.transfer.Length = tb.count
+	tb.transfer.Offset = tb.byteOffset
+	tb.transfer.ParamSize = uint32(unsafe.Sizeof(tb.transfer))
+	tb.transfer.Flags = cfapi.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
+	hr := tb.instance.transferData(tb.info, &tb.transfer)
+	tb.byteOffset += tb.count
+	tb.count = 0
+	return win.ErrorByCode(hr)
 }
 
 func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, data *cfapi.CF_CALLBACK_PARAMETERS_FetchData) uintptr {
@@ -35,35 +61,37 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 		return uintptr(syscall.EIO)
 	}
 	defer file.Close()
-	buffer := make([]byte, length)
+	tb := &transferBuffer{
+		info:       info,
+		instance:   instance,
+		buffer:     make([]byte, min(length, BUFFER_SIZE)),
+		byteOffset: byteOffset,
+		count:      0,
+	}
 
 	var n int
 	var count int64
 	for count < length {
-		n, err = file.ReadAt(buffer[count:], byteOffset+count)
+		n, err = file.ReadAt(tb.buffer[tb.count:], byteOffset+count)
 		count += int64(n)
 		if err == io.EOF {
 			err = nil
 			break
 		}
+		tb.count += int64(n)
+		if tb.count >= BUFFER_SIZE {
+			err = tb.send()
+			if err != nil {
+				return uintptr(syscall.EIO)
+			}
+		}
 	}
-
+	err = tb.send()
 	log.Printf("Read %d bytes", count)
 	if err != nil {
 		log.Printf("Error reading file %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 
-	var transfer cfapi.CF_OPERATION_PARAMETERS_TransferData
-	transfer.Buffer = uintptr(unsafe.Pointer(&buffer[0]))
-	transfer.Length = count
-	transfer.Offset = byteOffset
-	transfer.ParamSize = uint32(unsafe.Sizeof(transfer))
-	transfer.Flags = cfapi.CF_OPERATION_TRANSFER_DATA_FLAG_NONE
-	hr := instance.transferData(info, &transfer)
-	if hr != 0 {
-		log.Printf("Error transferring data: %s", win.ErrorByCode(hr))
-		return hr
-	}
 	return 0
 }

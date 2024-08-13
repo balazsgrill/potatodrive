@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/balazsgrill/potatodrive/bindings/s3"
+	"github.com/balazsgrill/potatodrive/bindings/sftp"
 	"github.com/balazsgrill/potatodrive/win"
 	cfapi "github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
 	prjfs "github.com/balazsgrill/potatodrive/win/projfs/filesystem"
@@ -19,6 +21,16 @@ import (
 )
 
 const UseCFAPI bool = true
+
+type BindingConfig interface {
+	Validate() error
+	ToFileSystem() (afero.Fs, error)
+}
+
+type BaseConfig struct {
+	LocalPath string `flag:"localpath,Local folder" reg:"LocalPath"`
+	Type      string `flag:"type,Type of binding" reg:"Type"`
+}
 
 func ConfigToFlags(config any) {
 	structPtrValue := reflect.ValueOf(config)
@@ -40,6 +52,16 @@ func ConfigToFlags(config any) {
 			}
 		}
 	}
+}
+
+func CreateConfigByType(typestr string) BindingConfig {
+	switch typestr {
+	case "afero-s3":
+		return &s3.Config{}
+	case "afero-sftp":
+		return &sftp.Config{}
+	}
+	return nil
 }
 
 func ReadConfigFromRegistry(key registry.Key, config any) error {
