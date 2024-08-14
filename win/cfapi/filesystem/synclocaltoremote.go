@@ -3,10 +3,11 @@ package filesystem
 import (
 	"bytes"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 	"github.com/spf13/afero"

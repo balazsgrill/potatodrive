@@ -5,13 +5,14 @@ import (
 	"errors"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 	"unsafe"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
@@ -56,7 +57,7 @@ func (instance *VirtualizationInstance) start() error {
 	policies.InSync = cfapi.CF_INSYNC_POLICY_TRACK_ALL
 	policies.HardLink = cfapi.CF_HARDLINK_POLICY_NONE
 	policies.PlaceholderManagement = cfapi.CF_PLACEHOLDER_MANAGEMENT_POLICY_DEFAULT
-	log.Println("Registering sync root")
+	log.Print("Registering sync root")
 	hr := cfapi.CfRegisterSyncRoot(win.GetPointer(instance.rootPath), &registration, &policies, cfapi.CF_REGISTER_FLAG_NONE)
 	if hr != 0 {
 		return win.ErrorByCode(hr)
@@ -68,7 +69,7 @@ func (instance *VirtualizationInstance) start() error {
 		//DeleteCompletion: instance.deleteCompletion,
 	}
 
-	log.Println("Connecting sync root")
+	log.Print("Connecting sync root")
 	hr = cfapi.CfConnectSyncRoot(win.GetPointer(instance.rootPath), callbacks.CreateCallbackTable(), uintptr(unsafe.Pointer(instance)), cfapi.CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH, &instance.connectionKey)
 
 	err := win.ErrorByCode(hr)
@@ -110,7 +111,7 @@ func getFileNameFromIdentity(info *cfapi.CF_CALLBACK_INFO) string {
 func getPlaceholder(f fs.FileInfo) cfapi.CF_PLACEHOLDER_CREATE_INFO {
 	var placeholder cfapi.CF_PLACEHOLDER_CREATE_INFO
 	filename := f.Name()
-	log.Println(filename)
+	log.Print(filename)
 	placeholder.RelativeFileName = win.GetPointer(filename)
 	placeholder.FsMetadata.BasicInfo = toBasicInfo(f)
 	identity := []byte(filename)

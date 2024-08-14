@@ -5,10 +5,11 @@ import (
 	"errors"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"syscall"
 	"unsafe"
+
+	"github.com/rs/zerolog/log"
 
 	"C"
 
@@ -47,7 +48,7 @@ func (instance *VirtualizationInstance) Close() error {
 	}
 	projfs.PrjStopVirtualizing(instance._instanceHandle)
 	instance._instanceHandle = 0
-	log.Println("Stopped virtualization")
+	log.Print("Stopped virtualization")
 	return nil
 }
 
@@ -333,7 +334,7 @@ func (instance *VirtualizationInstance) UpdateFileIfNeeded(relativePath string, 
 
 func returncode(err error) uintptr {
 	if err != nil {
-		log.Println(err)
+		log.Print(err)
 		return 1
 	}
 	return 0

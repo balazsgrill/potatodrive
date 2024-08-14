@@ -3,13 +3,14 @@ package bindings
 import (
 	"flag"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"reflect"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/bindings/s3"
 	"github.com/balazsgrill/potatodrive/bindings/sftp"
@@ -132,7 +133,7 @@ func BindVirtualizationInstance(localpath string, remotefs afero.Fs) (io.Closer,
 		for range t.C {
 			err = closer.PerformSynchronization()
 			if err != nil {
-				log.Println(err)
+				log.Print(err)
 			}
 		}
 	}()

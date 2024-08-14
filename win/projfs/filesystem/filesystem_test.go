@@ -2,13 +2,14 @@ package filesystem_test
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/projfs/filesystem"
@@ -46,7 +47,7 @@ func (i *testInstance) start() {
 	}()
 	<-started
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 }
 

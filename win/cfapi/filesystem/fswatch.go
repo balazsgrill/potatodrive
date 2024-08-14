@@ -1,13 +1,13 @@
 package filesystem
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 
 	"github.com/fsnotify/fsnotify"
 )
 
 func (instance *VirtualizationInstance) watch() {
-	log.Println("Watching for changes")
+	log.Print("Watching for changes")
 	go func() {
 		for err := range instance.watcher.Errors {
 			log.Printf("Received error: %s", err)

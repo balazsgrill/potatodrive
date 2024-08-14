@@ -3,11 +3,12 @@ package filesystem
 import (
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/bindings/utils"
 	"github.com/balazsgrill/potatodrive/win"
@@ -22,7 +23,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			return nil
 		}
 		if err != nil {
-			log.Println(err)
+			log.Print(err)
 			return err
 		}
 

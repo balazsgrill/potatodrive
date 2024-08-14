@@ -27,8 +27,8 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="0.72426347"
-     inkscape:cx="80.771712"
-     inkscape:cy="80.771712"
+     inkscape:cx="82.152424"
+     inkscape:cy="80.771711"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="1912"
@@ -71,7 +71,7 @@
      transform="translate(-72.245263,-92.094098)">
     <g
        id="g5"
-       transform="translate(11.297897,22.595793)">
+       transform="matrix(1.4065694,0,0,1.4065694,-35.056404,-22.215044)">
       <path
          id="path1"
          style="fill:#b97719;fill-opacity:1;fill-rule:nonzero;stroke:#815700;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"

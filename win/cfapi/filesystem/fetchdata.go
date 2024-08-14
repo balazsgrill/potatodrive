@@ -2,9 +2,10 @@ package filesystem
 
 import (
 	"io"
-	"log"
 	"syscall"
 	"unsafe"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"

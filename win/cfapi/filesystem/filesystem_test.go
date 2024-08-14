@@ -2,13 +2,14 @@ package filesystem_test
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
@@ -46,7 +47,7 @@ func (i *testInstance) start() {
 	}()
 	<-started
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Send()
 	}
 }
 
@@ -142,20 +143,20 @@ func TestUpdateExistingFileOnBackend(t *testing.T) {
 
 	// sleep to make sure that the file is newer
 	time.Sleep(1 * time.Second)
-	log.Println("Changing file")
+	log.Print("Changing file")
 	data = "somethingelse"
 	err = instance.osWriteFile(filename, data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	log.Println("Synchronizing")
+	log.Print("Synchronizing")
 	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	log.Println("Check content on remote")
+	log.Print("Check content on remote")
 	data2, err := afero.ReadFile(instance.fs, filename)
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +184,7 @@ func TestDeleteExistingFileOnBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Println("Synchronizing")
+	log.Print("Synchronizing")
 	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
@@ -219,7 +220,7 @@ func TestListFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Println("Synchronizing")
+	log.Print("Synchronizing")
 	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)
@@ -277,7 +278,7 @@ func TestFolderCreation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Println("Synchronizing")
+	log.Print("Synchronizing")
 	err = instance.closer.PerformSynchronization()
 	if err != nil {
 		t.Fatal(err)

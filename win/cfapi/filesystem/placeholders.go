@@ -1,10 +1,11 @@
 package filesystem
 
 import (
-	"log"
 	"strings"
 	"syscall"
 	"unsafe"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
@@ -30,7 +31,7 @@ func (instance *VirtualizationInstance) fetchPlaceholders(info *cfapi.CF_CALLBAC
 	placeholders := make([]cfapi.CF_PLACEHOLDER_CREATE_INFO, len(files))
 	for _, f := range files {
 		if !strings.HasPrefix(f.Name(), ".") {
-			log.Println(f.Name())
+			log.Print(f.Name())
 			placeholders[count] = getPlaceholder(f)
 
 			count += 1
