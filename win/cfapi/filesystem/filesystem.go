@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
@@ -22,6 +22,7 @@ import (
 )
 
 type VirtualizationInstance struct {
+	zerolog.Logger
 	rootPath    string
 	shortprefix string
 	longprefix  string
@@ -32,8 +33,9 @@ type VirtualizationInstance struct {
 	watcher       *fsnotify.Watcher
 }
 
-func StartProjecting(rootPath string, filesystem afero.Fs) (win.Virtualization, error) {
+func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
 	instance := &VirtualizationInstance{
+		Logger:   logger,
 		rootPath: rootPath,
 		fs:       filesystem,
 	}
@@ -45,32 +47,14 @@ func StartProjecting(rootPath string, filesystem afero.Fs) (win.Virtualization, 
 }
 
 func (instance *VirtualizationInstance) start() error {
-	var registration cfapi.CF_SYNC_REGISTRATION
-	registration.ProviderName = win.GetPointer("PotatoDrive")
-	registration.ProviderVersion = win.GetPointer("0.1")
-	registration.StructSize = uint32(unsafe.Sizeof(registration))
-	var policies cfapi.CF_SYNC_POLICIES
-	policies.StructSize = uint32(unsafe.Sizeof(policies))
-	policies.Hydration.Primary = cfapi.CF_HYDRATION_POLICY_FULL
-	policies.Hydration.Modifier = cfapi.CF_HYDRATION_POLICY_MODIFIER_AUTO_DEHYDRATION_ALLOWED
-	policies.Population.Primary = cfapi.CF_POPULATION_POLICY_ALWAYS_FULL
-	policies.InSync = cfapi.CF_INSYNC_POLICY_TRACK_ALL
-	policies.HardLink = cfapi.CF_HARDLINK_POLICY_NONE
-	policies.PlaceholderManagement = cfapi.CF_PLACEHOLDER_MANAGEMENT_POLICY_DEFAULT
-	log.Print("Registering sync root")
-	hr := cfapi.CfRegisterSyncRoot(win.GetPointer(instance.rootPath), &registration, &policies, cfapi.CF_REGISTER_FLAG_NONE)
-	if hr != 0 {
-		return win.ErrorByCode(hr)
-	}
-
 	callbacks := &cfapi.Callbacks{
 		FetchData: instance.fetchData,
 		//FetchPlaceholders: instance.fetchPlaceholders,
 		//DeleteCompletion: instance.deleteCompletion,
 	}
 
-	log.Print("Connecting sync root")
-	hr = cfapi.CfConnectSyncRoot(win.GetPointer(instance.rootPath), callbacks.CreateCallbackTable(), uintptr(unsafe.Pointer(instance)), cfapi.CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH, &instance.connectionKey)
+	instance.Logger.Print("Connecting sync root")
+	hr := cfapi.CfConnectSyncRoot(win.GetPointer(instance.rootPath), callbacks.CreateCallbackTable(), uintptr(unsafe.Pointer(instance)), cfapi.CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH, &instance.connectionKey)
 
 	err := win.ErrorByCode(hr)
 	if err != nil {
@@ -86,7 +70,7 @@ func (instance *VirtualizationInstance) start() error {
 
 	err = instance.PerformSynchronization()
 	if err != nil {
-		log.Printf("Initial synchronization failed %v", err)
+		instance.Logger.Printf("Initial synchronization failed %v", err)
 	}
 	return nil
 }
@@ -111,12 +95,10 @@ func getFileNameFromIdentity(info *cfapi.CF_CALLBACK_INFO) string {
 func getPlaceholder(f fs.FileInfo) cfapi.CF_PLACEHOLDER_CREATE_INFO {
 	var placeholder cfapi.CF_PLACEHOLDER_CREATE_INFO
 	filename := f.Name()
-	log.Print(filename)
 	placeholder.RelativeFileName = win.GetPointer(filename)
 	placeholder.FsMetadata.BasicInfo = toBasicInfo(f)
 	identity := []byte(filename)
 	placeholder.FileIdentity = uintptr(unsafe.Pointer(&identity[0]))
-	log.Printf("Identity address %x", placeholder.FileIdentity)
 	placeholder.FileIdentityLength = uint32(len(identity))
 	if !f.IsDir() {
 		placeholder.FsMetadata.FileSize = int64(f.Size())
@@ -289,7 +271,7 @@ func (instance *VirtualizationInstance) handleDeletion(localpath string) {
 	remotepath = strings.TrimPrefix(remotepath, "/")
 	err := instance.fs.RemoveAll(remotepath)
 	if err != nil {
-		log.Printf("deleteCompletion: remove %s failed: %v", remotepath, err)
+		instance.Logger.Printf("deleteCompletion: remove %s failed: %v", remotepath, err)
 	}
 }
 
@@ -297,17 +279,17 @@ func (instance *VirtualizationInstance) deleteCompletion(info *cfapi.CF_CALLBACK
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
 	filename := instance.callback_getRemoteFilePath(info)
-	log.Printf("deleteCompletion: %s", filename)
+	instance.Logger.Printf("deleteCompletion: %s", filename)
 	//hashfilename := instance.path_hashFile(filename)
 
 	err := instance.fs.Remove(filename)
 	if err != nil {
-		log.Printf("deleteCompletion: remove %s failed: %v", filename, err)
+		instance.Logger.Printf("deleteCompletion: remove %s failed: %v", filename, err)
 	}
 	/*
 		err = instance.fs.Remove(hashfilename)
 		if err != nil {
-			log.Printf("deleteCompletion: remove %s failed: %v", hashfilename, err)
+			instance.Logger.Printf("deleteCompletion: remove %s failed: %v", hashfilename, err)
 		}*/
 	return 0
 }

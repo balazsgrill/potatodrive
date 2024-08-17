@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/balazsgrill/potatodrive/bindings/s3"
 	"github.com/balazsgrill/potatodrive/bindings/sftp"
@@ -116,13 +116,17 @@ func (f closerFunc) Close() error {
 	return f()
 }
 
-func BindVirtualizationInstance(localpath string, remotefs afero.Fs) (io.Closer, error) {
+func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(error)) (io.Closer, error) {
 	var closer win.Virtualization
 	var err error
 	if UseCFAPI {
-		closer, err = cfapi.StartProjecting(localpath, remotefs)
+		err = cfapi.RegisterRootPath(id, localpath)
+		if err != nil {
+			return nil, err
+		}
+		closer, err = cfapi.StartProjecting(localpath, remotefs, logger)
 	} else {
-		closer, err = prjfs.StartProjecting(localpath, remotefs)
+		closer, err = prjfs.StartProjecting(localpath, remotefs, logger)
 	}
 	if err != nil {
 		return nil, err
@@ -133,8 +137,9 @@ func BindVirtualizationInstance(localpath string, remotefs afero.Fs) (io.Closer,
 		for range t.C {
 			err = closer.PerformSynchronization()
 			if err != nil {
-				log.Print(err)
+				logger.Err(err).Send()
 			}
+			statecallback(err)
 		}
 	}()
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/win"
@@ -40,7 +41,7 @@ func (i *testInstance) start() {
 	started := make(chan bool)
 	var err error
 	go func() {
-		i.closer, err = filesystem.StartProjecting(i.location, i.fs)
+		i.closer, err = filesystem.StartProjecting(i.location, i.fs, zerolog.New(zerolog.NewConsoleWriter()))
 		started <- true
 		<-i.closechan
 		i.closer.Close()

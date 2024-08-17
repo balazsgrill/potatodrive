@@ -9,8 +9,6 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/rs/zerolog/log"
-
 	"C"
 
 	"github.com/balazsgrill/potatodrive/win/projfs"
@@ -26,9 +24,11 @@ import (
 
 	"github.com/balazsgrill/potatodrive/bindings/utils"
 	"github.com/balazsgrill/potatodrive/win"
+	"github.com/rs/zerolog"
 )
 
 type VirtualizationInstance struct {
+	zerolog.Logger
 	rootPath        string
 	fs              afero.Fs
 	_instanceHandle projfs.PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT
@@ -48,12 +48,13 @@ func (instance *VirtualizationInstance) Close() error {
 	}
 	projfs.PrjStopVirtualizing(instance._instanceHandle)
 	instance._instanceHandle = 0
-	log.Print("Stopped virtualization")
+	instance.Logger.Print("Stopped virtualization")
 	return nil
 }
 
-func StartProjecting(rootPath string, filesystem afero.Fs) (win.Virtualization, error) {
+func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
 	instance := &VirtualizationInstance{
+		Logger:       logger,
 		enumerations: make(map[syscall.GUID]*enumerationSession),
 	}
 	return instance, instance.start(rootPath, filesystem)
@@ -73,10 +74,10 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 
 	hr := projfs.PrjMarkDirectoryAsPlaceholder(rootPath, "", nil, id)
 	if hr != 0 {
-		log.Printf("Error marking directory as placeholder: %s", win.ErrorByCode(hr))
+		instance.Logger.Printf("Error marking directory as placeholder: %s", win.ErrorByCode(hr))
 		return win.ErrorByCode(hr)
 	}
-	log.Printf("Starting virtualization of '%s' (%v)", rootPath, *id)
+	instance.Logger.Printf("Starting virtualization of '%s' (%v)", rootPath, *id)
 	options := &projfs.PRJ_STARTVIRTUALIZING_OPTIONS{
 		NotificationMappings: &projfs.PRJ_NOTIFICATION_MAPPING{
 			NotificationBitMask: projfs.PRJ_NOTIFY_NEW_FILE_CREATED | projfs.PRJ_NOTIFY_FILE_OVERWRITTEN | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_DELETED | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_MODIFIED,
@@ -89,12 +90,12 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 	hr = projfs.PrjStartVirtualizing(rootPath, instance.get_callbacks(), instance, options, &instance._instanceHandle)
 	err = win.ErrorByCode(hr)
 	if err != nil {
-		log.Printf("Error starting virtualization: %s", err)
+		instance.Logger.Printf("Error starting virtualization: %s", err)
 		return err
 	}
 	err = instance.syncRemoteToLocal()
 	if err != nil {
-		log.Printf("Initial sync failed: %s", err)
+		instance.Logger.Printf("Initial sync failed: %s", err)
 		return nil
 	}
 	return nil
@@ -138,7 +139,7 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
-		log.Printf("Syncing remote file '%s'", path)
+		instance.Logger.Printf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -163,7 +164,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			// check if remote is newer
 			localinfo, _ := os.Stat(localpath)
 			if localinfo.ModTime().UTC().Unix() < remoteinfo.ModTime().UTC().Unix() {
-				log.Printf("Updating local file '%s'", path)
+				instance.Logger.Printf("Updating local file '%s'", path)
 				var placeholderInfo projfs.PRJ_PLACEHOLDER_INFO
 				FillInPlaceholderInfo(&placeholderInfo, remoteinfo)
 				//err = win.ErrorByCode(projfs.PrjWritePlaceholderInfo(instance._instanceHandle, path, &placeholderInfo, uint32(unsafe.Sizeof(placeholderInfo))))
@@ -203,7 +204,7 @@ func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, er
 
 func (instance *VirtualizationInstance) syncLocalToRemote() error {
 	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
-		log.Printf("Syncing local file '%s'", localpath)
+		instance.Logger.Printf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -256,7 +257,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 					}
 				}
 				// new local file, remote does not exist, or hash is different
-				log.Printf("Uploading file '%s'", path)
+				instance.Logger.Printf("Uploading file '%s'", path)
 				return instance.streamLocalToRemote(path)
 			}
 			if err != nil {
@@ -271,7 +272,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			localtime := localmodtime.Unix()
 			remotetime := remoteinfo.ModTime().Unix()
 			if localtime > remotetime {
-				log.Printf("Updating remote file '%s'", path)
+				instance.Logger.Printf("Updating remote file '%s'", path)
 				return instance.streamLocalToRemote(path)
 			}
 		}
@@ -334,7 +335,6 @@ func (instance *VirtualizationInstance) UpdateFileIfNeeded(relativePath string, 
 
 func returncode(err error) uintptr {
 	if err != nil {
-		log.Print(err)
 		return 1
 	}
 	return 0
@@ -343,7 +343,7 @@ func returncode(err error) uintptr {
 func (instance *VirtualizationInstance) Notify(callbackData *projfs.PRJ_CALLBACK_DATA, IsDirectory bool, notification projfs.PRJ_NOTIFICATION, destinationFileName uintptr, operationParameters *projfs.PRJ_NOTIFICATION_PARAMETERS) uintptr {
 	// operation is done on file system
 	filename := instance.path_localToRemote(callbackData.GetFilePathName())
-	log.Printf("Notify: %t %d %d '%s', %d", IsDirectory, callbackData.CommandId, notification, filename, *operationParameters)
+	instance.Logger.Printf("Notify: %t %d %d '%s', %d", IsDirectory, callbackData.CommandId, notification, filename, *operationParameters)
 	switch notification {
 
 	case projfs.PRJ_NOTIFICATION_NEW_FILE_CREATED:
@@ -352,9 +352,10 @@ func (instance *VirtualizationInstance) Notify(callbackData *projfs.PRJ_CALLBACK
 		} else {
 			_, err := instance.fs.Create(filename)
 			if err != nil {
-				return returncode(err)
+				instance.Logger.Print(err)
+				return 1
 			}
-			return returncode(err)
+			return 0
 		}
 	case projfs.PRJ_NOTIFICATION_FILE_HANDLE_CLOSED_FILE_MODIFIED, projfs.PRJ_NOTIFICATION_FILE_OVERWRITTEN:
 		if !IsDirectory {
@@ -406,7 +407,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 
 func (instance *VirtualizationInstance) QueryFileName(callbackData *projfs.PRJ_CALLBACK_DATA) uintptr {
 	filename := instance.path_localToRemote(callbackData.GetFilePathName())
-	log.Printf("QueryFileName: '%s'", filename)
+	instance.Logger.Printf("QueryFileName: '%s'", filename)
 	return 0
 }
 
@@ -415,7 +416,7 @@ func (instance *VirtualizationInstance) CancelCommand(callbackData *projfs.PRJ_C
 }
 
 func (instance *VirtualizationInstance) StartDirectoryEnumeration(callbackData *projfs.PRJ_CALLBACK_DATA, enumerationId *syscall.GUID) uintptr {
-	log.Printf("StartDirectoryEnumeration: '%v'", *enumerationId)
+	instance.Logger.Printf("StartDirectoryEnumeration: '%v'", *enumerationId)
 	instance.enumerations[*enumerationId] = &enumerationSession{
 		searchstr: 0,
 		countget:  0,
@@ -426,7 +427,7 @@ func (instance *VirtualizationInstance) StartDirectoryEnumeration(callbackData *
 }
 
 func (instance *VirtualizationInstance) EndDirectoryEnumeration(callbackData *projfs.PRJ_CALLBACK_DATA, enumerationId *syscall.GUID) uintptr {
-	log.Printf("EndDirectoryEnumeration: '%v'", *enumerationId)
+	instance.Logger.Printf("EndDirectoryEnumeration: '%v'", *enumerationId)
 	instance.enumerations[*enumerationId] = nil
 	return 0
 }
@@ -440,7 +441,7 @@ func (instance *VirtualizationInstance) GetDirectoryEnumeration(callbackData *pr
 	if !ok {
 		return uintptr(syscall.EINVAL)
 	}
-	log.Printf("GetDirectoryEnumeration (%t, %t, %d) %s", first, restart, session.sentcount, filenamepath)
+	instance.Logger.Printf("GetDirectoryEnumeration (%t, %t, %d) %s", first, restart, session.sentcount, filenamepath)
 
 	if restart || first {
 		session.sentcount = 0
@@ -456,7 +457,7 @@ func (instance *VirtualizationInstance) GetDirectoryEnumeration(callbackData *pr
 
 	files, err := afero.ReadDir(instance.fs, filenamepath)
 	if err != nil {
-		log.Printf("Error reading directory %s: %s", filenamepath, err)
+		instance.Logger.Printf("Error reading directory %s: %s", filenamepath, err)
 		return uintptr(syscall.EIO)
 	}
 
@@ -476,7 +477,7 @@ func (instance *VirtualizationInstance) GetDirectoryEnumeration(callbackData *pr
 		dirEntry := toBasicInfo(file)
 		projfs.PrjFillDirEntryBuffer(file.Name(), &dirEntry, dirEntryBufferHandle)
 	}
-	log.Printf("Sent %d entries", session.sentcount)
+	instance.Logger.Printf("Sent %d entries", session.sentcount)
 	return 0
 }
 
@@ -501,7 +502,6 @@ func getVersionInfo(basicInfo *projfs.PRJ_FILE_BASIC_INFO) projfs.PRJ_PLACEHOLDE
 
 	version := uint64(basicInfo.LastWriteTime.Nanoseconds())
 	binary.LittleEndian.PutUint64(result.ContentID[:], version)
-	log.Printf("Version: %d %v", version, result.ContentID)
 	return result
 }
 
@@ -513,13 +513,13 @@ func FillInPlaceholderInfo(data *projfs.PRJ_PLACEHOLDER_INFO, fileinfo fs.FileIn
 func (instance *VirtualizationInstance) GetPlaceholderInfo(callbackData *projfs.PRJ_CALLBACK_DATA) uintptr {
 	var data projfs.PRJ_PLACEHOLDER_INFO
 	filename := instance.path_localToRemote(callbackData.GetFilePathName())
-	log.Printf("GetPlaceholderInfo %s", filename)
+	instance.Logger.Printf("GetPlaceholderInfo %s", filename)
 	stat, err := instance.fs.Stat(filename)
 	if os.IsNotExist(err) {
 		return uintptr(0x80070002)
 	}
 	if err != nil {
-		log.Printf("Error getting placeholder info for %s: %s", filename, err)
+		instance.Logger.Printf("Error getting placeholder info for %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 	FillInPlaceholderInfo(&data, stat)
@@ -528,10 +528,10 @@ func (instance *VirtualizationInstance) GetPlaceholderInfo(callbackData *projfs.
 
 func (instance *VirtualizationInstance) GetFileData(callbackData *projfs.PRJ_CALLBACK_DATA, byteOffset uint64, length uint32) uintptr {
 	filename := instance.path_localToRemote(callbackData.GetFilePathName())
-	log.Printf("GetFileData %s[%d]@%d", filename, length, byteOffset)
+	instance.Logger.Printf("GetFileData %s[%d]@%d", filename, length, byteOffset)
 	file, err := instance.fs.Open(filename)
 	if err != nil {
-		log.Printf("Error opening file %s: %s", filename, err)
+		instance.Logger.Printf("Error opening file %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 	defer file.Close()
@@ -548,9 +548,9 @@ func (instance *VirtualizationInstance) GetFileData(callbackData *projfs.PRJ_CAL
 		}
 	}
 
-	log.Printf("Read %d bytes", count)
+	instance.Logger.Printf("Read %d bytes", count)
 	if err != nil {
-		log.Printf("Error reading file %s: %s", filename, err)
+		instance.Logger.Printf("Error reading file %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 	return projfs.PrjWriteFileData(instance._instanceHandle, &callbackData.DataStreamId, &buffer[0], byteOffset, length)
