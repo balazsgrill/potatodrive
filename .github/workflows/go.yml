@@ -20,7 +20,7 @@ jobs:
       uses: actions/checkout@v4
       with:
           repository: balazsgrill/winrt-go
-          path: ../winrt-go
+          path: winrt-go
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
@@ -33,7 +33,6 @@ jobs:
     - name: Get tools
       run: |
         go install github.com/akavel/rsrc@latest 
-        go install github.com/saltosystems/winrt-go/cmd/winrt-go-gen@latest
 
     - name: Test
       run: go test -v ./...
