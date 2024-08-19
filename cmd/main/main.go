@@ -17,16 +17,19 @@ func main() {
 
 	keys, _ := mgr.InstanceList()
 	for _, keyname := range keys {
-		err := mgr.StartInstance(keyname, ui.Logger, func(err error) {
+		go func(keyname string) {
+			err := mgr.StartInstance(keyname, ui.Logger, func(err error) {
+				if err != nil {
+					ui.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
+				}
+			})
 			if err != nil {
-				ui.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
+				ui.Logger.Err(err).Msgf("Failed to start %s", keyname)
 			}
-		})
-		if err != nil {
-			ui.Logger.Err(err).Msgf("Failed to start %s", keyname)
-		}
+		}(keyname)
 	}
 
 	go bindings.CloseOnSigTerm(mgr)
 	ui.Run()
+	//select {}
 }

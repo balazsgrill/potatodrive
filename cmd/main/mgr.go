@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -69,7 +70,7 @@ func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger
 	log.Printf("Starting %s on %s", keyname, basec.LocalPath)
 	c, err := bindings.BindVirtualizationInstance(keyname, basec.LocalPath, fs, logger.With().Str("instance", keyname).Logger(), statecallback)
 	if err != nil {
-		logger.Print(err)
+		return nil, err
 	}
 	logger.Info().Msgf("%s started", keyname)
 	return c, nil
@@ -112,6 +113,9 @@ func (m *Manager) StartInstance(id string, logger zerolog.Logger, statecallback 
 	instance, err := startInstance(m.parentkey, id, logger, statecallback)
 	if err != nil {
 		return err
+	}
+	if instance == nil {
+		return errors.New("instance is nil")
 	}
 	m.instances[id] = instance
 	return nil
