@@ -16,6 +16,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Check out winrt-go fork
+      uses: actions/checkout@v4
+      with:
+          repository: balazsgrill/winrt-go
+          path: ../winrt-go
+
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
     
