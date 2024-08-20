@@ -5,14 +5,20 @@
            Language="1033"
            Manufacturer="Balázs Grill"
            Name="PotatoDrive"
-           Version="1.0.0.0">
+           Version="0.1.0.0"
+           Scope="perMachine" 
+           InstallerVersion="200">
 
-
+    <Icon Id="potato.ico" SourceFile="potato.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="potato.ico" />
+    <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+	<Property Id="ARPNOMODIFY" Value="yes" Secure="yes" />
     <MediaTemplate EmbedCab="yes" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
     <StandardDirectory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="PotatoDrive">
-          <Component Id="PotatoDrive" Guid="5384ae16-4fe0-4fc0-820d-e27b95344479">
+          <Component Id="PotatoDrive" Guid="5384ae16-4fe0-4fc0-820d-e27b95344479" Bitness="always64">
             <File Source="potatodrive.exe"></File>
             <File Source="potato.ico"></File>
           </Component>
