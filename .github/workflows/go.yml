@@ -41,7 +41,7 @@ jobs:
       run: go generate ./...
       
     - name: Build
-      run: go build -o potatodrive.exe ./cmd/main
+      run: go build -o potatodrive.exe -ldflags="-H windowsgui" ./cmd/main
     - uses: actions/upload-artifact@v4
       with:
         name: potatodrive.exe

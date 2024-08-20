@@ -6,8 +6,10 @@ import (
 	_ "image/png"
 
 	"github.com/balazsgrill/potatodrive/assets"
+	"github.com/balazsgrill/potatodrive/win"
 	"github.com/lxn/walk"
 	"github.com/rs/zerolog"
+	"golang.org/x/sys/windows"
 )
 
 //go:generate rsrc -manifest .\main.exe.manifest -o rsrc.syso
@@ -18,8 +20,14 @@ type UI struct {
 	ni *walk.NotifyIcon
 }
 
-func createUI(logger zerolog.Logger) *UI {
+type UIContext struct {
+	Logger  zerolog.Logger
+	LogFile string
+}
+
+func createUI(context UIContext) *UI {
 	ui := &UI{}
+	logger := context.Logger
 
 	// We need either a walk.MainWindow or a walk.Dialog for their message loop.
 	// We will not make it visible in this example, though.
@@ -73,6 +81,17 @@ func createUI(logger zerolog.Logger) *UI {
 		}
 	})
 
+	openLogAction := walk.NewAction()
+	if err := openLogAction.SetText("&Open Log"); err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+	openLogAction.Triggered().Attach(func() {
+		win.OpenFile(windows.Handle(ui.MainWindow.Handle()), context.LogFile)
+	})
+	if err := ui.ni.ContextMenu().Actions().Add(openLogAction); err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+
 	// We put an exit action into the context menu.
 	exitAction := walk.NewAction()
 	if err := exitAction.SetText("E&xit"); err != nil {
@@ -85,11 +104,6 @@ func createUI(logger zerolog.Logger) *UI {
 
 	// The notify icon is hidden initially, so we have to make it visible.
 	if err := ui.ni.SetVisible(true); err != nil {
-		logger.Fatal().Err(err).Send()
-	}
-
-	// Now that the icon is visible, we can bring up an info balloon.
-	if err := ui.ni.ShowInfo("Walk NotifyIcon Example", "Click the icon to show again."); err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 

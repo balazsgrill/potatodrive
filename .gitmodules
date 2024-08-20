@@ -1,0 +1,3 @@
+[subbodule "winrt-go"]
+ path = winrt-go
+ url = https://github.com/balazsgrill/winrt-go.git

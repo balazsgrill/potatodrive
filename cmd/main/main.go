@@ -12,7 +12,10 @@ func main() {
 		log.Print(err)
 		return
 	}
-	ui := createUI(mgr.Logger)
+	ui := createUI(UIContext{
+		Logger:  mgr.Logger,
+		LogFile: mgr.logfilepath,
+	})
 	defer ui.ni.Dispose()
 
 	keys, _ := mgr.InstanceList()

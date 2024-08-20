@@ -14,7 +14,8 @@ import (
 
 type Manager struct {
 	zerolog.Logger
-	logf io.Closer
+	logf        io.Closer
+	logfilepath string
 
 	parentkey registry.Key
 
@@ -22,7 +23,7 @@ type Manager struct {
 	instances map[string]io.Closer
 }
 
-func initLogger() (zerolog.Logger, io.Closer) {
+func initLogger() (string, zerolog.Logger, io.Closer) {
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
 		panic(err)
@@ -34,11 +35,12 @@ func initLogger() (zerolog.Logger, io.Closer) {
 	}
 
 	logfile := "potatodrive.log"
-	logf, err := os.OpenFile(filepath.Join(logfolder, logfile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	logfilepath := filepath.Join(logfolder, logfile)
+	logf, err := os.OpenFile(logfilepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		panic(err)
 	}
-	return log.Output(logf).With().Timestamp().Logger(), logf
+	return logfilepath, log.Output(logf).With().Timestamp().Logger(), logf
 }
 
 func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger, statecallback func(error)) (io.Closer, error) {
@@ -80,7 +82,7 @@ func New() (*Manager, error) {
 	m := &Manager{
 		instances: make(map[string]io.Closer),
 	}
-	m.Logger, m.logf = initLogger()
+	m.logfilepath, m.Logger, m.logf = initLogger()
 	var err error
 	m.parentkey, err = registry.OpenKey(registry.LOCAL_MACHINE, "SOFTWARE\\PotatoDrive", registry.QUERY_VALUE|registry.READ)
 	if err != nil {

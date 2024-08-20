@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -29,12 +30,22 @@ func newTestInstance(t *testing.T) *testInstance {
 	location := t.TempDir()
 	os.RemoveAll(location)
 	os.MkdirAll(location, 0x777)
+	uid := uuid.NewMD5(uuid.UUID{}, []byte(location))
+	id := win.BytesToGuid(uid[:])
+	err := filesystem.RegisterRootPathSimple(*id, location)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return &testInstance{
 		t:         t,
 		location:  location,
 		fs:        afero.NewMemMapFs(),
 		closechan: make(chan bool),
 	}
+}
+
+func (i *testInstance) Close() {
+	filesystem.UnregisterRootPathSimple(i.location)
 }
 
 func (i *testInstance) start() {
@@ -74,6 +85,7 @@ func (i *testInstance) stop() {
 
 func TestExistingFileOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 
 	data := []byte("something")
 	filename := "test.txt"
@@ -101,6 +113,7 @@ func TestExistingFileOnBackend(t *testing.T) {
 
 func TestFileCreation(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 	defer instance.stop()
 
@@ -131,6 +144,7 @@ func TestFileCreation(t *testing.T) {
 
 func TestUpdateExistingFileOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 
 	data := "something"
 	filename := "test.txt"
@@ -170,6 +184,7 @@ func TestUpdateExistingFileOnBackend(t *testing.T) {
 
 func TestDeleteExistingFileOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	data := "something"
 	filename := "test.txt"
 	err := afero.WriteFile(instance.fs, filename, []byte(data), 0x777)
@@ -205,6 +220,7 @@ func TestDeleteExistingFileOnBackend(t *testing.T) {
 
 func TestListFiles(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 	defer instance.stop()
 
@@ -251,6 +267,7 @@ func TestListFiles(t *testing.T) {
 
 func TestExistingFolderOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 
 	foldername := "test"
 	instance.fs.Mkdir(foldername, 0x777)
@@ -270,6 +287,7 @@ func TestExistingFolderOnBackend(t *testing.T) {
 
 func TestFolderCreation(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 	defer instance.stop()
 
@@ -296,6 +314,7 @@ func TestFolderCreation(t *testing.T) {
 
 func TestCreatedOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 	defer instance.stop()
 
@@ -324,6 +343,7 @@ func TestCreatedOnBackend(t *testing.T) {
 
 func TestChangedOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 
 	data := []byte("something")
 	filename := "test.txt"
@@ -369,6 +389,7 @@ func TestChangedOnBackend(t *testing.T) {
 
 func TestDeletedOnBackend(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 	defer instance.stop()
 	data := []byte("something")
@@ -404,6 +425,7 @@ func TestDeletedOnBackend(t *testing.T) {
 
 func TestUpdatedLocallyWhileOffline(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 
 	data := []byte("something")
@@ -442,6 +464,7 @@ func TestUpdatedLocallyWhileOffline(t *testing.T) {
 func TestRemoveFolder(t *testing.T) {
 	foldername := "test"
 	instance := newTestInstance(t)
+	defer instance.Close()
 	err := instance.fs.Mkdir(foldername, 0x777)
 	if err != nil {
 		t.Fatal(err)
@@ -481,6 +504,7 @@ func TestRemoveFolder(t *testing.T) {
 
 func TestDeletedOnBackendWhileOffline(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 
 	data := []byte("something")
@@ -527,6 +551,7 @@ func TestDeletedOnBackendWhileOffline(t *testing.T) {
 
 func TestDeletedLocallyWhileOffline(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 
 	data := []byte("something")
@@ -569,6 +594,7 @@ func TestDeletedLocallyWhileOffline(t *testing.T) {
 
 func TestConflictWhileOfflineLocalNewer(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 
 	data := []byte("something")
@@ -621,6 +647,7 @@ func TestConflictWhileOfflineLocalNewer(t *testing.T) {
 
 func TestConflictWhileOfflineRemoteNewer(t *testing.T) {
 	instance := newTestInstance(t)
+	defer instance.Close()
 	instance.start()
 
 	data := []byte("something")

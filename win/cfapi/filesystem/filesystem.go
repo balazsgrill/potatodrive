@@ -159,8 +159,7 @@ func (instance *VirtualizationInstance) Close() error {
 		return win.ErrorByCode(hr)
 	}
 
-	hr = cfapi.CfUnregisterSyncRoot(win.GetPointer(instance.rootPath))
-	return win.ErrorByCode(hr)
+	return nil
 }
 
 func (instance *VirtualizationInstance) PerformSynchronization() error {
