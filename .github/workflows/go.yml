@@ -46,3 +46,16 @@ jobs:
       with:
         name: potatodrive.exe
         path: potatodrive.exe
+      
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 5.x
+    - name: Install wix
+      run: dotnet tool install --global wix
+    - name: Create installer
+      run: wix PotatoDrive.wxs -o PotatoDrive.msi
+    - uses: actions/upload-artifact@v4
+      with:
+        name: PotatoDrive.msi
+        path: PotatoDrive.msi

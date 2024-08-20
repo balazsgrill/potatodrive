@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package 
+            UpgradeCode="281d8029-ac78-4de4-848a-c5c01446b9f3"
+           Language="1033"
+           Manufacturer="Balázs Grill"
+           Name="PotatoDrive"
+           Version="1.0.0.0">
+
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="PotatoDrive">
+          <Component Id="PotatoDrive" Guid="5384ae16-4fe0-4fc0-820d-e27b95344479">
+            <File Source="potatodrive.exe"></File>
+            <File Source="potato.ico"></File>
+          </Component>
+        </Directory>
+    </StandardDirectory>
+
+    <Feature Id="PotatoDriveCoreFeature">
+      <ComponentRef Id="PotatoDrive" />
+    </Feature>
+
+  </Package>
+</Wix>
