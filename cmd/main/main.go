@@ -6,12 +6,15 @@ import (
 	"github.com/balazsgrill/potatodrive/bindings"
 )
 
+var Version string = "0.0.0-dev"
+
 func main() {
 	mgr, err := New()
 	if err != nil {
 		log.Print(err)
 		return
 	}
+	mgr.Logger.Info().Str("version", Version).Msg("Starting PotatoDrive")
 	ui := createUI(UIContext{
 		Logger:  mgr.Logger,
 		LogFile: mgr.logfilepath,

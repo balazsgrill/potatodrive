@@ -6,6 +6,8 @@ name: Go
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - '*'
   pull_request:
     branches: [ "main" ]
 
@@ -15,6 +17,21 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+
+    - id: get_version
+      if: contains(github.ref, 'tags/')
+      name: Get version
+      uses: jannemattila/get-version-from-tag@v3
+    
+    - id: set_version
+      if: contains(github.ref, 'tags/')
+      name: Set version
+      run: VERSION=$(echo "${{ steps.get_version.outputs.version }}")
+      
+    - id: set_version
+      if: '!contains(github.ref, "tags/")'
+      name: Set version
+      run: VERSION=0.0.0-dev
 
     - name: Check out winrt-go fork
       uses: actions/checkout@v4
@@ -41,7 +58,7 @@ jobs:
       run: go generate ./...
       
     - name: Build
-      run: go build -o potatodrive.exe -ldflags="-H windowsgui" ./cmd/main
+      run: go build -o potatodrive.exe -ldflags="-H windowsgui -X 'main.Version=$VERSION'" ./cmd/main
     - uses: actions/upload-artifact@v4
       with:
         name: potatodrive.exe
@@ -60,3 +77,23 @@ jobs:
       with:
         name: PotatoDrive.msi
         path: PotatoDrive.msi
+
+    - name: release
+      uses: ncipollo/release-action@v1
+      id: create_release
+      with:
+        allowUpdates: true
+        draft: false
+        prerelease: false
+        name: ${{ github.ref_name }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: upload HTML report
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: PotatoDrive.msi
+        asset_name: Windows 64 bit installer
+        asset_content_type: application/x-msi
