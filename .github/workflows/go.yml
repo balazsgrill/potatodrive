@@ -28,7 +28,7 @@ jobs:
       name: Set version
       run: VERSION=$(echo "${{ steps.get_version.outputs.version }}")
       
-    - id: set_version
+    - id: set_version_default
       if: '!contains(github.ref, "tags/")'
       name: Set version
       run: VERSION=0.0.0-dev
