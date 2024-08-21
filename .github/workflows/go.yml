@@ -17,6 +17,13 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Check out winrt-go fork
+      uses: actions/checkout@v4
+      with:
+        repository: balazsgrill/winrt-go
+        path: winrt-go
+
 
     - id: get_version
       if: github.ref_type == 'tag'
@@ -32,12 +39,6 @@ jobs:
       if: github.ref_type != 'tag'
       name: Set version
       run: VERSION="0.0.0-dev"
-
-    - name: Check out winrt-go fork
-      uses: actions/checkout@v4
-      with:
-          repository: balazsgrill/winrt-go
-          path: winrt-go
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
