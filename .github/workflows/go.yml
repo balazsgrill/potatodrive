@@ -35,7 +35,7 @@ jobs:
       name: Set version
       with:
         variables: |
-          VERSION: github.ref_type == 'tag' ? $(echo "${{ steps.get_version.outputs.version }}") : "0.0.0-dev"
+          VERSION: ${{ github.ref_type }} == 'tag' ? $(echo "${{ steps.get_version.outputs.version }}") : "0.0.0-dev"
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
