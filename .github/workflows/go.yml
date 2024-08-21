@@ -31,7 +31,7 @@ jobs:
     - id: set_version_default
       if: github.ref_type != 'tag'
       name: Set version
-      run: VERSION=0.0.0-dev
+      run: VERSION="0.0.0-dev"
 
     - name: Check out winrt-go fork
       uses: actions/checkout@v4
