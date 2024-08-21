@@ -31,14 +31,11 @@ jobs:
       uses: jannemattila/get-version-from-tag@v3
     
     - id: set_version
-      if: github.ref_type == 'tag'
+      uses: marcdomain/set-variables@v1.2
       name: Set version
-      run: VERSION=$(echo "${{ steps.get_version.outputs.version }}")
-      
-    - id: set_version_default
-      if: github.ref_type != 'tag'
-      name: Set version
-      run: VERSION="0.0.0-dev"
+      with:
+        variables: |
+          VERSION: github.ref_type == 'tag' ? $(echo "${{ steps.get_version.outputs.version }}") : "0.0.0-dev"
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
