@@ -25,17 +25,21 @@ jobs:
         path: winrt-go
 
 
-    - id: get_version
+    - name: Get release info
+      id: release_info
       if: github.ref_type == 'tag'
-      name: Get version
-      uses: jannemattila/get-version-from-tag@v3
+      uses: revam/gh-action-get-tag-and-version@v1
+      with:
+        tag: ${{ github.ref }}
+        prefix: v
+        prefixRegex: "[vV]?"
     
     - id: set_version
       uses: marcdomain/set-variables@v1.2
       name: Set version
       with:
         variables: |
-          VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.get_version.outputs.version }}" : "0.0.0-dev"
+          VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.release_info.outputs.version }}" : "0.0.0-dev"
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
