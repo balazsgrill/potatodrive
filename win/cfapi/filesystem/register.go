@@ -94,7 +94,7 @@ func RegisterRootPath(id string, rootPath string) error {
 	info.SetId(id)
 	info.SetPath(folder)
 	info.SetDisplayNameResource("PotatoDrive " + rootPath)
-	info.SetIconResource("C:\\git\\potatodrive\\potato.ico")
+	info.SetIconResource(win.InstalledFile(win.POTATOICO))
 	info.SetVersion("1")
 	info.SetHydrationPolicy(provider.StorageProviderHydrationPolicyFull)
 	info.SetHydrationPolicyModifier(provider.StorageProviderHydrationPolicyModifierAutoDehydrationAllowed)

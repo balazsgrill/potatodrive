@@ -37,5 +37,4 @@ func main() {
 
 	go bindings.CloseOnSigTerm(mgr)
 	ui.Run()
-	//select {}
 }

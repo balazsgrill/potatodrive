@@ -99,5 +99,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: PotatoDrive.msi
-        asset_name: Windows 64 bit installer
+        asset_name: PotatoDrive-${{ env.VERSION }}.msi
         asset_content_type: application/x-msi

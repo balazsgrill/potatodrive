@@ -102,6 +102,21 @@ func createUI(context UIContext) *UI {
 		logger.Fatal().Err(err).Send()
 	}
 
+	// aboutDialog
+	aboudDialogAction := walk.NewAction()
+	if err := aboudDialogAction.SetText("About PotatoDrive"); err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+	aboudDialogAction.Triggered().Attach(func() {
+		_, err := aboutDialog(ui.MainWindow)
+		if err != nil {
+			logger.Error().Err(err).Send()
+		}
+	})
+	if err := ui.ni.ContextMenu().Actions().Add(aboudDialogAction); err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+
 	// The notify icon is hidden initially, so we have to make it visible.
 	if err := ui.ni.SetVisible(true); err != nil {
 		logger.Fatal().Err(err).Send()
