@@ -4,11 +4,13 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/bindings"
+	"github.com/balazsgrill/potatodrive/win"
 )
 
 var Version string = "0.0.0-dev"
 
 func main() {
+
 	mgr, err := New()
 	if err != nil {
 		log.Print(err)
@@ -20,6 +22,12 @@ func main() {
 		LogFile: mgr.logfilepath,
 	})
 	defer ui.ni.Dispose()
+
+	err = win.CheckAlreadyRunning()
+	if err != nil {
+		ui.NotificationInfo("Can't start PotatoDrive", "Already running")
+		return
+	}
 
 	keys, _ := mgr.InstanceList()
 	for _, keyname := range keys {

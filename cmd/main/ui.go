@@ -17,12 +17,19 @@ import (
 type UI struct {
 	*walk.MainWindow
 	zerolog.Logger
-	ni *walk.NotifyIcon
+	ni   *walk.NotifyIcon
+	icon *walk.Icon
 }
 
 type UIContext struct {
 	Logger  zerolog.Logger
 	LogFile string
+}
+
+func (ui *UI) NotificationInfo(title string, msg string) {
+	if err := ui.ni.ShowCustom(title, msg, ui.icon); err != nil {
+		ui.Logger.Fatal().Err(err).Send()
+	}
 }
 
 func createUI(context UIContext) *UI {
@@ -47,7 +54,7 @@ func createUI(context UIContext) *UI {
 	}
 
 	// We load our icon from a file.
-	icon, err := walk.NewIconFromBitmap(iconbt)
+	ui.icon, err = walk.NewIconFromBitmap(iconbt)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
 	}
@@ -59,7 +66,7 @@ func createUI(context UIContext) *UI {
 	}
 
 	// Set the icon and a tool tip text.
-	if err := ui.ni.SetIcon(icon); err != nil {
+	if err := ui.ni.SetIcon(ui.icon); err != nil {
 		logger.Fatal().Err(err).Send()
 	}
 	if err := ui.ni.SetToolTip("Click for info or use the context menu to exit."); err != nil {
@@ -71,13 +78,9 @@ func createUI(context UIContext) *UI {
 		if button != walk.LeftButton {
 			return
 		}
-
-		if err := ui.ni.ShowCustom(
-			"Walk NotifyIcon Example",
-			"There are multiple ShowX methods sporting different icons.",
-			icon); err != nil {
-
-			logger.Fatal().Err(err).Send()
+		_, err := aboutDialog(ui.MainWindow)
+		if err != nil {
+			logger.Error().Err(err).Send()
 		}
 	})
 
