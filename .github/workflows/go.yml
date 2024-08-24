@@ -77,7 +77,8 @@ jobs:
       uses: bluwy/substitute-string-action@v3
       with:
         _input-file: PotatoDrive-vars.wxi.tpl
-        _output.file: PotatoDrive-vars.wxi
+        _output-file: PotatoDrive-vars.wxi
+        _format-key: '%%key%%'
         Version: ${{ env.VERSION}}
     - uses: actions/upload-artifact@v4
       with:
