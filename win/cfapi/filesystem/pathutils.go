@@ -4,43 +4,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rs/zerolog/log"
-
-	"golang.org/x/sys/windows"
+	"github.com/balazsgrill/potatodrive/win"
 )
 
-func toLongPath(localpath string) string {
-	shortpathp, err := windows.UTF16FromString(localpath)
-	if err != nil {
-		log.Printf("Failed to convert path '%s' to UTF16: %v", localpath, err)
-		return localpath
-	}
-	longpathp := make([]uint16, windows.MAX_PATH)
-	_, err = windows.GetLongPathName(&shortpathp[0], &longpathp[0], uint32(len(longpathp)))
-	if err != nil {
-		log.Printf("Failed to convert path '%s' to long path: %v", localpath, err)
-		return localpath
-	}
-	return windows.UTF16ToString(longpathp)
-}
-
-func toShortPath(localpath string) string {
-	shortpathp, err := windows.UTF16FromString(localpath)
-	if err != nil {
-		log.Printf("Failed to convert path '%s' to UTF16: %v", localpath, err)
-		return localpath
-	}
-	longpathp := make([]uint16, windows.MAX_PATH)
-	_, err = windows.GetShortPathName(&shortpathp[0], &longpathp[0], uint32(len(longpathp)))
-	if err != nil {
-		log.Printf("Failed to convert path '%s' to short path: %v", localpath, err)
-		return localpath
-	}
-	return windows.UTF16ToString(longpathp)
-}
-
 func (instance *VirtualizationInstance) path_localToRemote(path string) string {
-	p := toLongPath(path)
+	p := win.ToLongPath(path)
 	p = strings.TrimPrefix(p, instance.shortprefix)
 	p = strings.TrimPrefix(p, instance.longprefix)
 	p = strings.ReplaceAll(p, "\\", "/")

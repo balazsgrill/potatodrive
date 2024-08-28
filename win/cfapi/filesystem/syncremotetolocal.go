@@ -17,9 +17,9 @@ import (
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
-		log.Printf("Syncing remote file '%s'", path)
+		instance.Logger.Debug().Msgf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
-			log.Printf("Not exists: %v", err)
+			instance.Logger.Error().Msgf("Not exists: %v", err)
 			return nil
 		}
 		if err != nil {
@@ -33,7 +33,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		}
 		localpath := instance.path_remoteToLocal(path)
 		placeholderstate, err := getPlaceholderState(localpath)
-		log.Printf("Placeholder state for '%s' is %x", localpath, placeholderstate)
+		instance.Logger.Debug().Msgf("Placeholder state for '%s' is %x", localpath, placeholderstate)
 		if os.IsNotExist(err) {
 			if remoteinfo.IsDir() {
 				// local dir does not exist, create it
@@ -66,7 +66,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		// check if remote is newer
 		localinfo, _ := os.Stat(localpath)
 		if localinfo.ModTime().UTC().Unix() < remoteinfo.ModTime().UTC().Unix() {
-			log.Printf("Updating local file '%s'", path)
+			instance.Logger.Debug().Msgf("Updating local file '%s'", path)
 
 			var handle syscall.Handle
 			hr := cfapi.CfOpenFileWithOplock(win.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
@@ -77,7 +77,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			placeholder := getPlaceholder(remoteinfo)
 
 			if !isaplacehoder {
-				log.Printf("Converting to placeholder '%s'", path)
+				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
 				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 				if hr != 0 {
 					return win.ErrorByCode(hr)

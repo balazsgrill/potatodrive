@@ -40,8 +40,8 @@ func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger
 		fs:       filesystem,
 	}
 
-	instance.longprefix = toLongPath(rootPath)
-	instance.shortprefix = toShortPath(rootPath)
+	instance.longprefix = win.ToLongPath(rootPath)
+	instance.shortprefix = win.ToShortPath(rootPath)
 
 	return instance, instance.start()
 }

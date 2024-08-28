@@ -5,8 +5,6 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 )
@@ -54,11 +52,11 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 		length = data.OptionalLength
 		byteOffset = data.OptionalFileOffset
 	}
-	log.Printf("Fetch data: %s %d bytes at %d", filename, length, byteOffset)
-	log.Printf("Optional %d at %d", data.OptionalLength, data.OptionalFileOffset)
+	instance.Logger.Debug().Msgf("Fetch data: %s %d bytes at %d", filename, length, byteOffset)
+	instance.Logger.Debug().Msgf("Optional %d at %d", data.OptionalLength, data.OptionalFileOffset)
 	file, err := instance.fs.Open(filename)
 	if err != nil {
-		log.Printf("Error opening file %s: %s", filename, err)
+		instance.Logger.Debug().Msgf("Error opening file %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 	defer file.Close()
@@ -88,9 +86,9 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 		}
 	}
 	err = tb.send()
-	log.Printf("Read %d bytes", count)
+	instance.Logger.Debug().Msgf("Read %d bytes", count)
 	if err != nil {
-		log.Printf("Error reading file %s: %s", filename, err)
+		instance.Logger.Debug().Msgf("Error reading file %s: %s", filename, err)
 		return uintptr(syscall.EIO)
 	}
 

@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 	"github.com/spf13/afero"
 )
@@ -51,7 +49,7 @@ func (instance *VirtualizationInstance) isDeletedRemotely(remotepath string, loc
 
 func (instance *VirtualizationInstance) syncLocalToRemote() error {
 	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
-		log.Printf("Syncing local file '%s'", localpath)
+		instance.Logger.Debug().Msgf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -71,7 +69,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		if err != nil {
 			return err
 		}
-		log.Printf("Local state %x", localstate)
+		instance.Logger.Debug().Msgf("Local state %x", localstate)
 
 		deleted, err := instance.isDeletedRemotely(path, localpath)
 		if err != nil {
@@ -85,7 +83,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			localisnewer := os.IsNotExist(err) || (localinfo.ModTime().UTC().Unix() > remoteinfo.ModTime().UTC().Unix())
 
 			if localisnewer {
-				log.Printf("Updating remote file '%s'", path)
+				instance.Logger.Info().Msgf("Updating remote file '%s'", path)
 				return instance.streamLocalToRemote(path)
 			}
 		}
