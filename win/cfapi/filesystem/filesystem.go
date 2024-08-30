@@ -23,10 +23,11 @@ import (
 
 type VirtualizationInstance struct {
 	zerolog.Logger
-	rootPath    string
-	shortprefix string
-	longprefix  string
-	fs          afero.Fs
+	rootPath         string
+	shortprefix      string
+	longprefix       string
+	fs               afero.Fs
+	remoteCacheState win.RemoteStateCache
 
 	connectionKey cfapi.CF_CONNECTION_KEY
 	lock          sync.Mutex
@@ -35,9 +36,10 @@ type VirtualizationInstance struct {
 
 func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
 	instance := &VirtualizationInstance{
-		Logger:   logger,
-		rootPath: rootPath,
-		fs:       filesystem,
+		Logger:           logger,
+		rootPath:         rootPath,
+		fs:               filesystem,
+		remoteCacheState: win.HashFilesRemotely(filesystem),
 	}
 
 	instance.longprefix = win.ToLongPath(rootPath)
@@ -49,8 +51,8 @@ func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger
 func (instance *VirtualizationInstance) start() error {
 	callbacks := &cfapi.Callbacks{
 		FetchData: instance.fetchData,
-		//FetchPlaceholders: instance.fetchPlaceholders,
-		//DeleteCompletion: instance.deleteCompletion,
+		//FetchPlaceholders: instance.fetchPlaceholders, // using always_full
+		//DeleteCompletion: instance.deleteCompletion,   // replaced by fswatch
 	}
 
 	instance.Logger.Print("Connecting sync root")
@@ -73,18 +75,6 @@ func (instance *VirtualizationInstance) start() error {
 		instance.Logger.Printf("Initial synchronization failed %v", err)
 	}
 	return nil
-}
-
-func (instance *VirtualizationInstance) readRemoteHash(remotepath string) ([]byte, error) {
-	hashpath := instance.path_hashFile(remotepath)
-	exists, err := afero.Exists(instance.fs, hashpath)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, nil
-	}
-	return afero.ReadFile(instance.fs, hashpath)
 }
 
 func getFileNameFromIdentity(info *cfapi.CF_CALLBACK_INFO) string {
@@ -202,7 +192,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 		}
 	}
 
-	return afero.WriteFile(instance.fs, instance.path_hashFile(filename), hash.Sum(nil), 0666)
+	return instance.remoteCacheState.UpdateHash(filename, hash.Sum(nil))
 }
 
 func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, error) {

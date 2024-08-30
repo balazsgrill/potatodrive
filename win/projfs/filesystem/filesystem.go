@@ -29,10 +29,11 @@ import (
 
 type VirtualizationInstance struct {
 	zerolog.Logger
-	rootPath        string
-	fs              afero.Fs
-	_instanceHandle projfs.PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT
-	enumerations    map[syscall.GUID]*enumerationSession
+	rootPath         string
+	fs               afero.Fs
+	remoteCacheState win.RemoteStateCache
+	_instanceHandle  projfs.PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT
+	enumerations     map[syscall.GUID]*enumerationSession
 }
 
 type enumerationSession struct {
@@ -54,8 +55,9 @@ func (instance *VirtualizationInstance) Close() error {
 
 func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
 	instance := &VirtualizationInstance{
-		Logger:       logger,
-		enumerations: make(map[syscall.GUID]*enumerationSession),
+		Logger:           logger,
+		enumerations:     make(map[syscall.GUID]*enumerationSession),
+		remoteCacheState: win.HashFilesRemotely(filesystem),
 	}
 	return instance, instance.start(rootPath, filesystem)
 }
@@ -121,12 +123,6 @@ func (instance *VirtualizationInstance) path_getNameRemote(path string) string {
 
 func (instance *VirtualizationInstance) path_getNameLocal(path string) string {
 	return filepath.Base(strings.ReplaceAll(path, "\\", "/"))
-}
-
-func (instance *VirtualizationInstance) path_hashFile(remotepath string) string {
-	fname := filepath.Base(remotepath)
-	dir := filepath.Dir(remotepath)
-	return dir + "/.md5_" + fname
 }
 
 func (instance *VirtualizationInstance) PerformSynchronization() error {
@@ -231,17 +227,13 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			remoteinfo, err := instance.fs.Stat(path)
 			if os.IsNotExist(err) {
 				// chek if hash file exists on remote
-				hashpath := instance.path_hashFile(path)
-				exists, err := afero.Exists(instance.fs, hashpath)
+
+				hash, err := instance.remoteCacheState.GetHash(path)
 				if err != nil {
 					return err
 				}
+				exists := len(hash) > 0
 				if exists {
-					// on remote file existed before, upload only if hash is different
-					hash, err := afero.ReadFile(instance.fs, hashpath)
-					if err != nil {
-						return err
-					}
 					localhash, err := instance.localHash(path)
 					if err != nil {
 						return err
@@ -362,9 +354,6 @@ func (instance *VirtualizationInstance) Notify(callbackData *projfs.PRJ_CALLBACK
 			return returncode(instance.streamLocalToRemote(filename))
 		}
 	case projfs.PRJ_NOTIFICATION_FILE_HANDLE_CLOSED_FILE_DELETED:
-		// TODO establish protocol for deletion
-		// option 1: upon deletion, leave a placeholder (remove when recreated)
-		// option 2: upon creation, create an indicator, which remains upon deletion (can stay around)
 		return returncode(instance.fs.Remove(filename))
 	}
 	return 0
@@ -402,7 +391,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 		}
 	}
 
-	return afero.WriteFile(instance.fs, instance.path_hashFile(filename), hash.Sum(nil), 0666)
+	return instance.remoteCacheState.UpdateHash(filename, hash.Sum(nil))
 }
 
 func (instance *VirtualizationInstance) QueryFileName(callbackData *projfs.PRJ_CALLBACK_DATA) uintptr {

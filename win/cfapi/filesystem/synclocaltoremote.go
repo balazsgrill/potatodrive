@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/balazsgrill/potatodrive/win/cfapi"
-	"github.com/spf13/afero"
 )
 
 // isDeletedRemotely check whether file was deleted remotely
@@ -16,18 +15,13 @@ import (
 func (instance *VirtualizationInstance) isDeletedRemotely(remotepath string, localpath string) (bool, error) {
 	_, err := instance.fs.Stat(remotepath)
 	if os.IsNotExist(err) {
-		// chek if hash file exists on remote
-		hashpath := instance.path_hashFile(remotepath)
-		exists, err := afero.Exists(instance.fs, hashpath)
+		// chek if remote hash is known
+		hash, err := instance.remoteCacheState.GetHash(remotepath)
 		if err != nil {
 			return false, err
 		}
-		if exists {
+		if len(hash) > 0 {
 			// on remote file existed before, upload only if hash is different
-			hash, err := afero.ReadFile(instance.fs, hashpath)
-			if err != nil {
-				return false, err
-			}
 			localhash, err := instance.localHash(remotepath)
 			if err != nil {
 				return false, err
@@ -77,7 +71,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		}
 
 		if ((localstate & cfapi.CF_PLACEHOLDER_STATE_IN_SYNC) == 0) && (!deleted) {
-			// local file is a placeholder, but not in sync, upload it if local is newer
+			// local file is a hydrated placeholder, but not in sync, upload it if local is newer
 
 			remoteinfo, err := instance.fs.Stat(path)
 			localisnewer := os.IsNotExist(err) || (localinfo.ModTime().UTC().Unix() > remoteinfo.ModTime().UTC().Unix())

@@ -30,9 +30,3 @@ func (instance *VirtualizationInstance) path_getNameRemote(path string) string {
 func (instance *VirtualizationInstance) path_getNameLocal(path string) string {
 	return filepath.Base(strings.ReplaceAll(path, "\\", "/"))
 }
-
-func (instance *VirtualizationInstance) path_hashFile(remotepath string) string {
-	fname := filepath.Base(remotepath)
-	dir := filepath.Dir(remotepath)
-	return dir + "/.md5_" + fname
-}
