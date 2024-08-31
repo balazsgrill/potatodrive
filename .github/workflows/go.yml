@@ -59,7 +59,7 @@ jobs:
     - name: Generate
       run: go generate ./...
       
-    - name: Set logback env values
+    - name: Set version to manifest
       uses: rvolo/xml-replace-action@v0.2
       with:
         filepath: "cmd/main/main.exe.manifest"
