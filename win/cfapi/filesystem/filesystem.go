@@ -160,8 +160,23 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 	return instance.syncLocalToRemote()
 }
 
+func (instance *VirtualizationInstance) setInSync(localpath string) error {
+	var handle syscall.Handle
+	hr := cfapi.CfOpenFileWithOplock(win.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
+	if hr != 0 {
+		return win.ErrorByCode(hr)
+	}
+	defer cfapi.CfCloseHandle(handle)
+	hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
+	if hr != 0 {
+		return win.ErrorByCode(hr)
+	}
+	return nil
+}
+
 func (instance *VirtualizationInstance) streamLocalToRemote(filename string) error {
-	file, err := os.Open(instance.path_remoteToLocal(filename))
+	localpath := instance.path_remoteToLocal(filename)
+	file, err := os.Open(localpath)
 	if err != nil {
 		return err
 	}
@@ -190,6 +205,10 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 		if err != nil {
 			return err
 		}
+	}
+	err = instance.setInSync(localpath)
+	if err != nil {
+		return err
 	}
 
 	return instance.remoteCacheState.UpdateHash(filename, hash.Sum(nil))
@@ -220,6 +239,9 @@ func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, er
 
 func getPlaceholderInfo(localpath string) (*cfapi.CF_PLACEHOLDER_BASIC_INFO, error) {
 	localpathstr, err := syscall.UTF16PtrFromString(localpath)
+	if err != nil {
+		return nil, err
+	}
 	fileHandle, err := syscall.CreateFile(localpathstr, syscall.GENERIC_READ, syscall.FILE_SHARE_READ, nil, syscall.OPEN_EXISTING, // existing file only
 		syscall.FILE_ATTRIBUTE_NORMAL|syscall.FILE_FLAG_OVERLAPPED,
 		0)

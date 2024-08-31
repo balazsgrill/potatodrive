@@ -8,7 +8,6 @@ import (
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 	"github.com/go-ole/go-ole"
-	"github.com/rs/zerolog/log"
 	"github.com/saltosystems/winrt-go"
 	"github.com/saltosystems/winrt-go/windows/foundation"
 	"github.com/saltosystems/winrt-go/windows/storage"
@@ -48,7 +47,6 @@ func RegisterRootPathSimple(id syscall.GUID, rootPath string) error {
 	policies.InSync = cfapi.CF_INSYNC_POLICY_TRACK_ALL
 	policies.HardLink = cfapi.CF_HARDLINK_POLICY_NONE
 	policies.PlaceholderManagement = cfapi.CF_PLACEHOLDER_MANAGEMENT_POLICY_DEFAULT
-	log.Print("Registering sync root")
 	hr := cfapi.CfRegisterSyncRoot(win.GetPointer(rootPath), &registration, &policies, cfapi.CF_REGISTER_FLAG_NONE)
 	if hr != 0 {
 		return win.ErrorByCode(hr)

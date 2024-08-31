@@ -61,8 +61,6 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		insync := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_IN_SYNC) != 0
 		isaplacehoder := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_PLACEHOLDER) != 0
 
-		// is not a placeholder, or an in-sync hydrated placeholder
-		//if (insync) || (!isaplacehoder) {
 		// check if remote is newer
 		localinfo, _ := os.Stat(localpath)
 		if localinfo.ModTime().UTC().Unix() < remoteinfo.ModTime().UTC().Unix() {
@@ -77,6 +75,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			placeholder := getPlaceholder(remoteinfo)
 
 			if !isaplacehoder {
+				// updating a placeholder only works if it's a placeholder
 				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
 				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 				if hr != 0 {
@@ -84,6 +83,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				}
 			}
 			if !insync {
+				// updating a placeholder only works if it is marked as in-sync
 				hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
 				if hr != 0 {
 					return win.ErrorByCode(hr)
@@ -98,7 +98,6 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			}
 
 		}
-		//}
 
 		return nil
 	})
