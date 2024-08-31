@@ -39,7 +39,7 @@ jobs:
       name: Set version
       with:
         variables: |
-          VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.release_info.outputs.version }}" : "0.0.0-dev"
+          VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.release_info.outputs.version }}" : "0.0.0.0"
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
@@ -59,8 +59,15 @@ jobs:
     - name: Generate
       run: go generate ./...
       
+    - name: Set logback env values
+      uses: rvolo/xml-replace-action@v0.2
+      with:
+        filepath: "cmd/main/main.exe.manifest"
+        xpath: "//assembly/assemblyIdentity/@version"
+        replace: "${{ env.VERSION }}"
+
     - name: Build
-      run: go build -o potatodrive.exe -ldflags="-H windowsgui -X 'main.Version=${{ env.VERSION}}'" ./cmd/main
+      run: go build -o potatodrive.exe -ldflags="-H windowsgui -X 'main.Version=${{ env.VERSION }}'" ./cmd/main
     - name: Compress
       uses: crazy-max/ghaction-upx@v3
       with:
