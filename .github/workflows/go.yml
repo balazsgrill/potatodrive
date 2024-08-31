@@ -61,6 +61,13 @@ jobs:
       
     - name: Build
       run: go build -o potatodrive.exe -ldflags="-H windowsgui -X 'main.Version=${{ env.VERSION}}'" ./cmd/main
+    - name: Compress
+      uses: crazy-max/ghaction-upx@v3
+      with:
+        version: latest
+        files: |
+          ./potatodrive.exe
+        args: -9
     - uses: actions/upload-artifact@v4
       with:
         name: potatodrive.exe
