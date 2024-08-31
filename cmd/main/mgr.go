@@ -40,7 +40,7 @@ func initLogger() (string, zerolog.Logger, io.Closer) {
 	if err != nil {
 		panic(err)
 	}
-	return logfilepath, log.Output(logf).With().Timestamp().Logger(), logf
+	return logfilepath, log.Output(zerolog.MultiLevelWriter(logf, zerolog.NewConsoleWriter())).With().Timestamp().Logger(), logf
 }
 
 func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger, statecallback func(error)) (io.Closer, error) {
@@ -69,7 +69,7 @@ func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger
 		return nil, err
 	}
 
-	log.Printf("Starting %s on %s", keyname, basec.LocalPath)
+	logger.Info().Msgf("Starting %s on %s", keyname, basec.LocalPath)
 	c, err := bindings.BindVirtualizationInstance(keyname, basec.LocalPath, fs, logger.With().Str("instance", keyname).Logger(), statecallback)
 	if err != nil {
 		return nil, err
@@ -97,8 +97,8 @@ func New() (*Manager, error) {
 }
 
 func (m *Manager) Close() error {
-	m.Logger.Info().Msg("Closing")
-	for _, instance := range m.instances {
+	for key, instance := range m.instances {
+		m.Logger.Info().Msgf("Closing %s", key)
 		err := instance.Close()
 		if err != nil {
 			m.Logger.Err(err).Msg("Failed to close instance")

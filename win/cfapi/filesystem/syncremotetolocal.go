@@ -8,8 +8,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/balazsgrill/potatodrive/bindings/utils"
 	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
@@ -23,7 +21,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			return nil
 		}
 		if err != nil {
-			log.Print(err)
+			instance.Logger.Err(err).Send()
 			return err
 		}
 

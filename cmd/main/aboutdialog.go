@@ -20,7 +20,7 @@ func openlink(link *walk.LinkLabelLink) {
 func aboutDialog(_ walk.Form) (int, error) {
 	return MainWindow{
 		Title:   "About PotatoDrive",
-		Icon:    win.InstalledFile(win.POTATOICO),
+		Icon:    win.InstalledFile(win.POTATOICO, false),
 		MinSize: Size{300, 200},
 		Size:    Size{300, 200},
 		MaxSize: Size{300, 200},
