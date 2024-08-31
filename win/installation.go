@@ -15,24 +15,19 @@ const (
 	MUTEXNAME = "7122117b-3a2e-4c5d-bb21-2c9d0d2243bd"
 )
 
-func InstalledFile(relativename string, absolute bool) string {
+func InstalledFile(relativename string, short bool) string {
 	exec, err := os.Executable()
 	if strings.HasPrefix(exec, os.TempDir()) {
 		// Detects development mode, where files are looked for in the working directory rather than along with the exe
-		if absolute {
-			exec, err = os.Getwd()
-		} else {
-			exec = "."
-		}
+		exec, err = os.Getwd()
 	} else {
 		exec = filepath.Dir(exec)
 	}
-
 	if err != nil {
 		panic(err)
 	}
 	path := filepath.Join(exec, relativename)
-	if absolute {
+	if short {
 		return ToShortPath(path)
 	}
 	return path

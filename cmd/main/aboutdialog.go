@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/balazsgrill/potatodrive/win"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/rs/zerolog/log"
@@ -20,7 +19,7 @@ func openlink(link *walk.LinkLabelLink) {
 func aboutDialog(_ walk.Form) (int, error) {
 	return MainWindow{
 		Title:   "About PotatoDrive",
-		Icon:    win.InstalledFile(win.POTATOICO, false),
+		Icon:    "#2\\0409",
 		MinSize: Size{300, 200},
 		Size:    Size{300, 200},
 		MaxSize: Size{300, 200},

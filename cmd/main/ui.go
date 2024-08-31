@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-//go:generate rsrc -manifest .\main.exe.manifest -o rsrc.syso
+//go:generate rsrc -manifest .\main.exe.manifest -o rsrc.syso -ico ../../potato.ico
 
 type UI struct {
 	*walk.MainWindow
