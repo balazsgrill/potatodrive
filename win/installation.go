@@ -19,13 +19,15 @@ func InstalledFile(relativename string) string {
 	exec, err := os.Executable()
 	if strings.HasPrefix(exec, os.TempDir()) {
 		// Detects development mode, where files are looked for in the working directory rather than along with the exe
-		exec = "."
+		exec, err = os.Getwd()
+	} else {
+		exec = filepath.Dir(exec)
 	}
 
 	if err != nil {
 		panic(err)
 	}
-	return ToShortPath(filepath.Join(filepath.Dir(exec), relativename))
+	return ToShortPath(filepath.Join(exec, relativename))
 }
 
 func CheckAlreadyRunning() error {

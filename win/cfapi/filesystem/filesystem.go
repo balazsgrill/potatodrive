@@ -161,15 +161,40 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 }
 
 func (instance *VirtualizationInstance) setInSync(localpath string) error {
+	placeholderstate, err := getPlaceholderState(localpath)
+	if err != nil {
+		return err
+	}
+
 	var handle syscall.Handle
 	hr := cfapi.CfOpenFileWithOplock(win.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
 	if hr != 0 {
 		return win.ErrorByCode(hr)
 	}
 	defer cfapi.CfCloseHandle(handle)
-	hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
-	if hr != 0 {
-		return win.ErrorByCode(hr)
+
+	insync := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_IN_SYNC) != 0
+	isaplacehoder := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_PLACEHOLDER) != 0
+
+	if !isaplacehoder {
+		fileinfo, err := os.Stat(localpath)
+		if err != nil {
+			return err
+		}
+		placeholder := getPlaceholder(fileinfo)
+
+		// setting in-sync staate only works if it's a placeholder
+		hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
+		if hr != 0 {
+			return win.ErrorByCode(hr)
+		}
+	}
+	if !insync {
+		// updating a placeholder only works if it is marked as in-sync
+		hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
+		if hr != 0 {
+			return win.ErrorByCode(hr)
+		}
 	}
 	return nil
 }
@@ -205,10 +230,6 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 		if err != nil {
 			return err
 		}
-	}
-	err = instance.setInSync(localpath)
-	if err != nil {
-		return err
 	}
 
 	return instance.remoteCacheState.UpdateHash(filename, hash.Sum(nil))

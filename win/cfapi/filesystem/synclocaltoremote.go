@@ -78,11 +78,14 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 
 			if localisnewer {
 				instance.Logger.Info().Msgf("Updating remote file '%s'", path)
-				return instance.streamLocalToRemote(path)
-			} else {
-				// no need to upload, mark file as in-sync
-				return instance.setInSync(localpath)
+				err = instance.streamLocalToRemote(path)
+				if err != nil {
+					return err
+				}
 			}
+			// mark file as in-sync
+			return instance.setInSync(localpath)
+
 		}
 
 		if deleted {

@@ -75,7 +75,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			placeholder := getPlaceholder(remoteinfo)
 
 			if !isaplacehoder {
-				// updating a placeholder only works if it's a placeholder
+				// setting in-sync state only works if it's a placeholder
 				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
 				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 				if hr != 0 {
