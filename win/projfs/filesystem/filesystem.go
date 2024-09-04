@@ -43,6 +43,8 @@ type enumerationSession struct {
 	wildcard  bool
 }
 
+func (*VirtualizationInstance) SetFileStateHandler(handler func(state win.FileSyncState)) {}
+
 func (instance *VirtualizationInstance) Close() error {
 	if instance._instanceHandle == 0 {
 		return errors.New("not started")
@@ -126,6 +128,7 @@ func (instance *VirtualizationInstance) path_getNameLocal(path string) string {
 }
 
 func (instance *VirtualizationInstance) PerformSynchronization() error {
+	// TODO propagate file sync state
 	err := instance.syncLocalToRemote()
 	if err != nil {
 		return err

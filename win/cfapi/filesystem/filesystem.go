@@ -32,6 +32,11 @@ type VirtualizationInstance struct {
 	connectionKey cfapi.CF_CONNECTION_KEY
 	lock          sync.Mutex
 	watcher       *fsnotify.Watcher
+	handler       func(state win.FileSyncState)
+}
+
+func (instance *VirtualizationInstance) SetFileStateHandler(handler func(state win.FileSyncState)) {
+	instance.handler = handler
 }
 
 func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
@@ -70,10 +75,6 @@ func (instance *VirtualizationInstance) start() error {
 	instance.watcher.Add(instance.rootPath)
 	go instance.watch()
 
-	err = instance.PerformSynchronization()
-	if err != nil {
-		instance.Logger.Printf("Initial synchronization failed %v", err)
-	}
 	return nil
 }
 

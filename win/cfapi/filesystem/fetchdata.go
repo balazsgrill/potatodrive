@@ -13,8 +13,12 @@ import (
 
 const BUFFER_SIZE int64 = 1024 * 1024
 
+func (instance *VirtualizationInstance) callback_getFilePath(info *cfapi.CF_CALLBACK_INFO) string {
+	return win.GetString(info.VolumeDosName) + win.GetString(info.NormalizedPath)
+}
+
 func (instance *VirtualizationInstance) callback_getRemoteFilePath(info *cfapi.CF_CALLBACK_INFO) string {
-	return instance.path_localToRemote(win.GetString(info.VolumeDosName) + win.GetString(info.NormalizedPath))
+	return instance.path_localToRemote(instance.callback_getFilePath(info))
 }
 
 type transferBuffer struct {
@@ -50,12 +54,16 @@ func (tb *transferBuffer) send(updatehash hash.Hash) error {
 func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, data *cfapi.CF_CALLBACK_PARAMETERS_FetchData) uintptr {
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
-	filename := instance.callback_getRemoteFilePath(info)
+	localpath := instance.callback_getFilePath(info)
+	instance.NotifyFileState(localpath, win.FileSyncStateDownloading)
+
+	filename := instance.path_localToRemote(localpath)
 	length := data.RequiredLength
 	byteOffset := data.RequiredFileOffset
 	remoteinfo, err := instance.fs.Stat(filename)
 	if err != nil {
 		instance.Logger.Error().Msgf("Remote file is inaccessible %s: %s", filename, err)
+		instance.NotifyFileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	if length == 0 || length < 0 {
@@ -77,6 +85,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	file, err := instance.fs.Open(filename)
 	if err != nil {
 		instance.Logger.Error().Msgf("Error opening file %s: %s", filename, err)
+		instance.NotifyFileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	defer file.Close()
@@ -101,6 +110,8 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 		if tb.count >= BUFFER_SIZE {
 			err = tb.send(updatehash)
 			if err != nil {
+				instance.Logger.Error().Msgf("Error computing file hash %s: %s", filename, err)
+				instance.NotifyFileError(localpath, err)
 				return uintptr(syscall.EIO)
 			}
 		}
@@ -109,6 +120,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	instance.Logger.Debug().Msgf("Read %d bytes", count)
 	if err != nil {
 		instance.Logger.Error().Msgf("Error reading file %s: %s", filename, err)
+		instance.NotifyFileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	if updatehash != nil {
@@ -117,6 +129,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 			instance.Logger.Warn().Msgf("Error updating state cache %s: %s", filename, err)
 		}
 	}
+	instance.NotifyFileState(localpath, win.FileSyncStateDone)
 
 	return 0
 }

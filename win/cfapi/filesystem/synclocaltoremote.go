@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/balazsgrill/potatodrive/win"
 	"github.com/balazsgrill/potatodrive/win/cfapi"
 )
 
@@ -77,10 +78,15 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			localisnewer := os.IsNotExist(err) || (localinfo.ModTime().UTC().Unix() > remoteinfo.ModTime().UTC().Unix())
 
 			if localisnewer {
+				// TODO Add file to queue instead of doing it here
+				instance.NotifyFileState(localpath, win.FileSyncStateUploading)
 				instance.Logger.Info().Msgf("Updating remote file '%s'", path)
 				err = instance.streamLocalToRemote(path)
 				if err != nil {
+					instance.NotifyFileError(localpath, err)
 					return err
+				} else {
+					instance.NotifyFileState(localpath, win.FileSyncStateDone)
 				}
 			}
 			// mark file as in-sync
@@ -89,7 +95,14 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		}
 
 		if deleted {
-			return os.Remove(localpath)
+			err := os.Remove(localpath)
+			if err != nil {
+				instance.NotifyFileError(localpath, err)
+				return err
+			} else {
+				instance.NotifyFileState(localpath, win.FileSyncStateDeleted)
+			}
+			return err
 		}
 		return nil
 	})

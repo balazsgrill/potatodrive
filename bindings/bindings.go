@@ -116,7 +116,7 @@ func (f closerFunc) Close() error {
 	return f()
 }
 
-func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(error)) (io.Closer, error) {
+func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(win.ConnectionState)) (io.Closer, error) {
 	var closer win.Virtualization
 	var err error
 	if UseCFAPI {
@@ -132,14 +132,36 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 		return nil, err
 	}
 
+	internalSynchronize := func() {
+		statecallback(win.ConnectionState{
+			ID:             id,
+			SyncInProgress: true,
+			LastSyncError:  nil,
+		})
+		err = closer.PerformSynchronization()
+		if err != nil {
+			logger.Err(err).Send()
+			statecallback(win.ConnectionState{
+				ID:             id,
+				SyncInProgress: false,
+				LastSyncError:  err,
+			})
+		} else {
+			statecallback(win.ConnectionState{
+				ID:             id,
+				SyncInProgress: false,
+				LastSyncError:  nil,
+			})
+		}
+	}
+
+	// initial sync
+	internalSynchronize()
+
 	t := time.NewTicker(30 * time.Second)
 	go func() {
 		for range t.C {
-			err = closer.PerformSynchronization()
-			if err != nil {
-				logger.Err(err).Send()
-			}
-			statecallback(err)
+			internalSynchronize()
 		}
 	}()
 

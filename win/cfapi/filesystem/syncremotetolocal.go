@@ -94,6 +94,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			if hr != 0 {
 				return win.ErrorByCode(hr)
 			}
+			instance.NotifyFileState(localpath, win.FileSyncStateDirty)
 
 		}
 
