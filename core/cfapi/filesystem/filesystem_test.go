@@ -13,8 +13,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi/filesystem"
 	"github.com/spf13/afero"
 )
 
@@ -22,7 +22,7 @@ type testInstance struct {
 	t         *testing.T
 	location  string
 	fs        afero.Fs
-	closer    win.Virtualization
+	closer    core.Virtualization
 	closechan chan bool
 }
 
@@ -31,7 +31,7 @@ func newTestInstance(t *testing.T) *testInstance {
 	os.RemoveAll(location)
 	os.MkdirAll(location, 0x777)
 	uid := uuid.NewMD5(uuid.UUID{}, []byte(location))
-	id := win.BytesToGuid(uid[:])
+	id := core.BytesToGuid(uid[:])
 	err := filesystem.RegisterRootPathSimple(*id, location)
 	if err != nil {
 		t.Fatal(err)

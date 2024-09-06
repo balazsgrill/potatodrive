@@ -1,4 +1,4 @@
-package win
+package core
 
 import (
 	"path"

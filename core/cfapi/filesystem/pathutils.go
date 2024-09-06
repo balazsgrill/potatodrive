@@ -4,11 +4,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 )
 
 func (instance *VirtualizationInstance) path_localToRemote(path string) string {
-	p := win.ToLongPath(path)
+	p := core.ToLongPath(path)
 	p = strings.TrimPrefix(p, instance.shortprefix)
 	p = strings.TrimPrefix(p, instance.longprefix)
 	p = strings.ReplaceAll(p, "\\", "/")

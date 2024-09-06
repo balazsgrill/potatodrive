@@ -3,7 +3,7 @@ package cfapi_test
 import (
 	"testing"
 
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 )
 
 func Test_PlatformVersion(t *testing.T) {

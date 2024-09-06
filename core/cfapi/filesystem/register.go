@@ -5,8 +5,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 	"github.com/go-ole/go-ole"
 	"github.com/saltosystems/winrt-go"
 	"github.com/saltosystems/winrt-go/windows/foundation"
@@ -36,8 +36,8 @@ func getFolder(folder string) (*storage.IStorageFolder, error) {
 func RegisterRootPathSimple(id syscall.GUID, rootPath string) error {
 	var registration cfapi.CF_SYNC_REGISTRATION
 	registration.ProviderId = id
-	registration.ProviderName = win.GetPointer("PotatoDrive")
-	registration.ProviderVersion = win.GetPointer("0.1")
+	registration.ProviderName = core.GetPointer("PotatoDrive")
+	registration.ProviderVersion = core.GetPointer("0.1")
 	registration.StructSize = uint32(unsafe.Sizeof(registration))
 	var policies cfapi.CF_SYNC_POLICIES
 	policies.StructSize = uint32(unsafe.Sizeof(policies))
@@ -47,16 +47,16 @@ func RegisterRootPathSimple(id syscall.GUID, rootPath string) error {
 	policies.InSync = cfapi.CF_INSYNC_POLICY_TRACK_ALL
 	policies.HardLink = cfapi.CF_HARDLINK_POLICY_NONE
 	policies.PlaceholderManagement = cfapi.CF_PLACEHOLDER_MANAGEMENT_POLICY_DEFAULT
-	hr := cfapi.CfRegisterSyncRoot(win.GetPointer(rootPath), &registration, &policies, cfapi.CF_REGISTER_FLAG_NONE)
+	hr := cfapi.CfRegisterSyncRoot(core.GetPointer(rootPath), &registration, &policies, cfapi.CF_REGISTER_FLAG_NONE)
 	if hr != 0 {
-		return win.ErrorByCode(hr)
+		return core.ErrorByCode(hr)
 	}
 	return nil
 }
 
 func UnregisterRootPathSimple(rootPath string) error {
-	hr := cfapi.CfUnregisterSyncRoot(win.GetPointer(rootPath))
-	return win.ErrorByCode(hr)
+	hr := cfapi.CfUnregisterSyncRoot(core.GetPointer(rootPath))
+	return core.ErrorByCode(hr)
 }
 
 func RegisterRootPath(id string, rootPath string) error {
@@ -92,7 +92,7 @@ func RegisterRootPath(id string, rootPath string) error {
 	info.SetId(id)
 	info.SetPath(folder)
 	info.SetDisplayNameResource("PotatoDrive " + rootPath)
-	info.SetIconResource(win.InstalledFile(win.POTATOICO, true))
+	info.SetIconResource(core.InstalledFile(core.POTATOICO, true))
 	info.SetVersion("1")
 	info.SetHydrationPolicy(provider.StorageProviderHydrationPolicyFull)
 	info.SetHydrationPolicyModifier(provider.StorageProviderHydrationPolicyModifierAutoDehydrationAllowed)

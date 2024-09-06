@@ -4,7 +4,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/balazsgrill/potatodrive/bindings"
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 )
 
 var Version string = "0.0.0-dev"
@@ -23,7 +23,7 @@ func main() {
 	})
 	defer ui.ni.Dispose()
 
-	err = win.CheckAlreadyRunning()
+	err = core.CheckAlreadyRunning()
 	if err != nil {
 		ui.NotificationInfo("Can't start PotatoDrive", "Already running")
 		return
@@ -32,7 +32,7 @@ func main() {
 	keys, _ := mgr.InstanceList()
 	for _, keyname := range keys {
 		go func(keyname string) {
-			err := mgr.StartInstance(keyname, ui.Logger, func(state win.ConnectionState) {
+			err := mgr.StartInstance(keyname, ui.Logger, func(state core.ConnectionState) {
 				if state.LastSyncError != nil {
 					ui.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
 				}

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/balazsgrill/potatodrive/bindings"
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sys/windows/registry"
@@ -44,7 +44,7 @@ func initLogger() (string, zerolog.Logger, io.Closer) {
 	return logfilepath, log.Output(zerolog.MultiLevelWriter(logf, zerolog.NewConsoleWriter())).With().Timestamp().Logger(), logf
 }
 
-func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger, statecallback func(win.ConnectionState)) (io.Closer, error) {
+func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger, statecallback func(core.ConnectionState)) (io.Closer, error) {
 	key, err := registry.OpenKey(parentkey, keyname, registry.QUERY_VALUE)
 	if err != nil {
 		logger.Printf("Open key: %v", err)
@@ -112,7 +112,7 @@ func (m *Manager) InstanceList() ([]string, error) {
 	return m.keylist, nil
 }
 
-func (m *Manager) StartInstance(id string, logger zerolog.Logger, statecallback func(win.ConnectionState)) error {
+func (m *Manager) StartInstance(id string, logger zerolog.Logger, statecallback func(core.ConnectionState)) error {
 	instance, err := startInstance(m.parentkey, id, logger, statecallback)
 	if err != nil {
 		return err

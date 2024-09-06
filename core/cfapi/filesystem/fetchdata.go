@@ -7,14 +7,14 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 )
 
 const BUFFER_SIZE int64 = 1024 * 1024
 
 func (instance *VirtualizationInstance) callback_getFilePath(info *cfapi.CF_CALLBACK_INFO) string {
-	return win.GetString(info.VolumeDosName) + win.GetString(info.NormalizedPath)
+	return core.GetString(info.VolumeDosName) + core.GetString(info.NormalizedPath)
 }
 
 func (instance *VirtualizationInstance) callback_getRemoteFilePath(info *cfapi.CF_CALLBACK_INFO) string {
@@ -48,14 +48,14 @@ func (tb *transferBuffer) send(updatehash hash.Hash) error {
 	tb.byteOffset += tb.count
 	tb.count = 0
 
-	return win.ErrorByCode(hr)
+	return core.ErrorByCode(hr)
 }
 
 func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, data *cfapi.CF_CALLBACK_PARAMETERS_FetchData) uintptr {
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
 	localpath := instance.callback_getFilePath(info)
-	instance.NotifyFileState(localpath, win.FileSyncStateDownloading)
+	instance.NotifyFileState(localpath, core.FileSyncStateDownloading)
 
 	filename := instance.path_localToRemote(localpath)
 	length := data.RequiredLength
@@ -129,7 +129,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 			instance.Logger.Warn().Msgf("Error updating state cache %s: %s", filename, err)
 		}
 	}
-	instance.NotifyFileState(localpath, win.FileSyncStateDone)
+	instance.NotifyFileState(localpath, core.FileSyncStateDone)
 
 	return 0
 }

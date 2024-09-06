@@ -6,7 +6,7 @@ import (
 	_ "image/png"
 
 	"github.com/balazsgrill/potatodrive/assets"
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 	"github.com/lxn/walk"
 	"github.com/rs/zerolog"
 	"golang.org/x/sys/windows"
@@ -89,7 +89,7 @@ func createUI(context UIContext) *UI {
 		logger.Fatal().Err(err).Send()
 	}
 	openLogAction.Triggered().Attach(func() {
-		win.OpenFile(windows.Handle(ui.MainWindow.Handle()), context.LogFile)
+		core.OpenFile(windows.Handle(ui.MainWindow.Handle()), context.LogFile)
 	})
 	if err := ui.ni.ContextMenu().Actions().Add(openLogAction); err != nil {
 		logger.Fatal().Err(err).Send()

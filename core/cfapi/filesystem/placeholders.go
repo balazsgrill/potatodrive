@@ -5,8 +5,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 	"github.com/spf13/afero"
 )
 
@@ -14,8 +14,8 @@ func (instance *VirtualizationInstance) fetchPlaceholders(info *cfapi.CF_CALLBAC
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
 	name := getFileNameFromIdentity(info)
-	instance.Logger.Debug().Msgf("Fetch placeholders: %s / %s", win.GetString(info.NormalizedPath), name)
-	remotepath := instance.path_localToRemote(win.GetString(info.NormalizedPath))
+	instance.Logger.Debug().Msgf("Fetch placeholders: %s / %s", core.GetString(info.NormalizedPath), name)
+	remotepath := instance.path_localToRemote(core.GetString(info.NormalizedPath))
 	files, err := afero.ReadDir(instance.fs, remotepath)
 	if err != nil {
 		instance.Logger.Debug().Msgf("Error reading directory %s: %s", remotepath, err)
@@ -50,7 +50,7 @@ func (instance *VirtualizationInstance) fetchPlaceholders(info *cfapi.CF_CALLBAC
 		hr := instance.transferPlaceholders(info, &transfer)
 
 		if hr != 0 {
-			instance.Logger.Debug().Msgf("Error transferring placeholders: %s", win.ErrorByCode(hr))
+			instance.Logger.Debug().Msgf("Error transferring placeholders: %s", core.ErrorByCode(hr))
 			return hr
 		}
 	}
@@ -65,7 +65,7 @@ func (instance *VirtualizationInstance) fetchPlaceholders(info *cfapi.CF_CALLBAC
 		hr := instance.transferPlaceholders(info, &transfer)
 
 		if hr != 0 {
-			instance.Logger.Debug().Msgf("Error transferring placeholders: %s", win.ErrorByCode(hr))
+			instance.Logger.Debug().Msgf("Error transferring placeholders: %s", core.ErrorByCode(hr))
 			return hr
 		}
 	}

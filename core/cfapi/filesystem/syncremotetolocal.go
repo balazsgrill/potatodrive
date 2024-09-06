@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/balazsgrill/potatodrive/bindings/utils"
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 )
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
@@ -41,9 +41,9 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				// placeholder does not exists, create it
 				placeholder := getPlaceholder(remoteinfo)
 				var EntriesProcessed uint32
-				hr := cfapi.CfCreatePlaceholders(win.GetPointer(localdir), &placeholder, 1, cfapi.CF_CREATE_FLAG_NONE, &EntriesProcessed)
+				hr := cfapi.CfCreatePlaceholders(core.GetPointer(localdir), &placeholder, 1, cfapi.CF_CREATE_FLAG_NONE, &EntriesProcessed)
 				if hr != 0 {
-					return win.ErrorByCode(hr)
+					return core.ErrorByCode(hr)
 				}
 				if EntriesProcessed != 1 {
 					return fmt.Errorf("unexpected number of entries processed: %d", EntriesProcessed)
@@ -65,9 +65,9 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			instance.Logger.Debug().Msgf("Updating local file '%s'", path)
 
 			var handle syscall.Handle
-			hr := cfapi.CfOpenFileWithOplock(win.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
+			hr := cfapi.CfOpenFileWithOplock(core.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
 			if hr != 0 {
-				return win.ErrorByCode(hr)
+				return core.ErrorByCode(hr)
 			}
 			defer cfapi.CfCloseHandle(handle)
 			placeholder := getPlaceholder(remoteinfo)
@@ -77,14 +77,14 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
 				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 				if hr != 0 {
-					return win.ErrorByCode(hr)
+					return core.ErrorByCode(hr)
 				}
 			}
 			if !insync {
 				// updating a placeholder only works if it is marked as in-sync
 				hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
 				if hr != 0 {
-					return win.ErrorByCode(hr)
+					return core.ErrorByCode(hr)
 				}
 			}
 			var fileRange cfapi.CF_FILE_RANGE
@@ -92,9 +92,9 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			fileRange.Length = localinfo.Size()
 			hr = cfapi.CfUpdatePlaceholder(handle, &placeholder.FsMetadata, placeholder.FileIdentity, placeholder.FileIdentityLength, &fileRange, 1, cfapi.CF_UPDATE_FLAG_CLEAR_IN_SYNC|cfapi.CF_UPDATE_FLAG_DEHYDRATE, nil, 0)
 			if hr != 0 {
-				return win.ErrorByCode(hr)
+				return core.ErrorByCode(hr)
 			}
-			instance.NotifyFileState(localpath, win.FileSyncStateDirty)
+			instance.NotifyFileState(localpath, core.FileSyncStateDirty)
 
 		}
 

@@ -14,8 +14,8 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/afero"
 	"golang.org/x/sys/windows"
@@ -27,28 +27,28 @@ type VirtualizationInstance struct {
 	shortprefix      string
 	longprefix       string
 	fs               afero.Fs
-	remoteCacheState win.RemoteStateCache
+	remoteCacheState core.RemoteStateCache
 
 	connectionKey cfapi.CF_CONNECTION_KEY
 	lock          sync.Mutex
 	watcher       *fsnotify.Watcher
-	handler       func(state win.FileSyncState)
+	handler       func(state core.FileSyncState)
 }
 
-func (instance *VirtualizationInstance) SetFileStateHandler(handler func(state win.FileSyncState)) {
+func (instance *VirtualizationInstance) SetFileStateHandler(handler func(state core.FileSyncState)) {
 	instance.handler = handler
 }
 
-func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
+func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (core.Virtualization, error) {
 	instance := &VirtualizationInstance{
 		Logger:           logger,
 		rootPath:         rootPath,
 		fs:               filesystem,
-		remoteCacheState: win.HashFilesRemotely(filesystem),
+		remoteCacheState: core.HashFilesRemotely(filesystem),
 	}
 
-	instance.longprefix = win.ToLongPath(rootPath)
-	instance.shortprefix = win.ToShortPath(rootPath)
+	instance.longprefix = core.ToLongPath(rootPath)
+	instance.shortprefix = core.ToShortPath(rootPath)
 
 	return instance, instance.start()
 }
@@ -61,9 +61,9 @@ func (instance *VirtualizationInstance) start() error {
 	}
 
 	instance.Logger.Print("Connecting sync root")
-	hr := cfapi.CfConnectSyncRoot(win.GetPointer(instance.rootPath), callbacks.CreateCallbackTable(), uintptr(unsafe.Pointer(instance)), cfapi.CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH, &instance.connectionKey)
+	hr := cfapi.CfConnectSyncRoot(core.GetPointer(instance.rootPath), callbacks.CreateCallbackTable(), uintptr(unsafe.Pointer(instance)), cfapi.CF_CONNECT_FLAG_REQUIRE_FULL_FILE_PATH, &instance.connectionKey)
 
-	err := win.ErrorByCode(hr)
+	err := core.ErrorByCode(hr)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func getFileNameFromIdentity(info *cfapi.CF_CALLBACK_INFO) string {
 func getPlaceholder(f fs.FileInfo) cfapi.CF_PLACEHOLDER_CREATE_INFO {
 	var placeholder cfapi.CF_PLACEHOLDER_CREATE_INFO
 	filename := f.Name()
-	placeholder.RelativeFileName = win.GetPointer(filename)
+	placeholder.RelativeFileName = core.GetPointer(filename)
 	placeholder.FsMetadata.BasicInfo = toBasicInfo(f)
 	identity := []byte(filename)
 	placeholder.FileIdentity = uintptr(unsafe.Pointer(&identity[0]))
@@ -147,7 +147,7 @@ func (instance *VirtualizationInstance) Close() error {
 	instance.watcher.Close()
 	hr := cfapi.CfDisconnectSyncRoot(instance.connectionKey)
 	if hr != 0 {
-		return win.ErrorByCode(hr)
+		return core.ErrorByCode(hr)
 	}
 
 	return nil
@@ -168,9 +168,9 @@ func (instance *VirtualizationInstance) setInSync(localpath string) error {
 	}
 
 	var handle syscall.Handle
-	hr := cfapi.CfOpenFileWithOplock(win.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
+	hr := cfapi.CfOpenFileWithOplock(core.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
 	if hr != 0 {
-		return win.ErrorByCode(hr)
+		return core.ErrorByCode(hr)
 	}
 	defer cfapi.CfCloseHandle(handle)
 
@@ -187,14 +187,14 @@ func (instance *VirtualizationInstance) setInSync(localpath string) error {
 		// setting in-sync staate only works if it's a placeholder
 		hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 		if hr != 0 {
-			return win.ErrorByCode(hr)
+			return core.ErrorByCode(hr)
 		}
 	}
 	if !insync {
 		// updating a placeholder only works if it is marked as in-sync
 		hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
 		if hr != 0 {
-			return win.ErrorByCode(hr)
+			return core.ErrorByCode(hr)
 		}
 	}
 	return nil
@@ -274,7 +274,7 @@ func getPlaceholderInfo(localpath string) (*cfapi.CF_PLACEHOLDER_BASIC_INFO, err
 	var placeholderInfo cfapi.CF_PLACEHOLDER_BASIC_INFO
 	var ReturnedLength uint32
 	hr := cfapi.CfGetPlaceholderInfo(fileHandle, cfapi.CF_PLACEHOLDER_INFO_BASIC, uintptr(unsafe.Pointer(&placeholderInfo)), uint32(unsafe.Sizeof(placeholderInfo)), &ReturnedLength)
-	return &placeholderInfo, win.ErrorByCode(hr)
+	return &placeholderInfo, core.ErrorByCode(hr)
 }
 
 const FileAttributeTagInfo uint32 = 9

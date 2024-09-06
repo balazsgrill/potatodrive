@@ -11,7 +11,8 @@ import (
 
 	"C"
 
-	"github.com/balazsgrill/potatodrive/win/projfs"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/projfs"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
@@ -23,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/balazsgrill/potatodrive/bindings/utils"
-	"github.com/balazsgrill/potatodrive/win"
 	"github.com/rs/zerolog"
 )
 
@@ -31,7 +31,7 @@ type VirtualizationInstance struct {
 	zerolog.Logger
 	rootPath         string
 	fs               afero.Fs
-	remoteCacheState win.RemoteStateCache
+	remoteCacheState core.RemoteStateCache
 	_instanceHandle  projfs.PRJ_NAMESPACE_VIRTUALIZATION_CONTEXT
 	enumerations     map[syscall.GUID]*enumerationSession
 }
@@ -43,7 +43,7 @@ type enumerationSession struct {
 	wildcard  bool
 }
 
-func (*VirtualizationInstance) SetFileStateHandler(handler func(state win.FileSyncState)) {}
+func (*VirtualizationInstance) SetFileStateHandler(handler func(state core.FileSyncState)) {}
 
 func (instance *VirtualizationInstance) Close() error {
 	if instance._instanceHandle == 0 {
@@ -55,11 +55,11 @@ func (instance *VirtualizationInstance) Close() error {
 	return nil
 }
 
-func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (win.Virtualization, error) {
+func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (core.Virtualization, error) {
 	instance := &VirtualizationInstance{
 		Logger:           logger,
 		enumerations:     make(map[syscall.GUID]*enumerationSession),
-		remoteCacheState: win.HashFilesRemotely(filesystem),
+		remoteCacheState: core.HashFilesRemotely(filesystem),
 	}
 	return instance, instance.start(rootPath, filesystem)
 }
@@ -78,21 +78,21 @@ func (instance *VirtualizationInstance) start(rootPath string, filesystem afero.
 
 	hr := projfs.PrjMarkDirectoryAsPlaceholder(rootPath, "", nil, id)
 	if hr != 0 {
-		instance.Logger.Printf("Error marking directory as placeholder: %s", win.ErrorByCode(hr))
-		return win.ErrorByCode(hr)
+		instance.Logger.Printf("Error marking directory as placeholder: %s", core.ErrorByCode(hr))
+		return core.ErrorByCode(hr)
 	}
 	instance.Logger.Printf("Starting virtualization of '%s' (%v)", rootPath, *id)
 	options := &projfs.PRJ_STARTVIRTUALIZING_OPTIONS{
 		NotificationMappings: &projfs.PRJ_NOTIFICATION_MAPPING{
 			NotificationBitMask: projfs.PRJ_NOTIFY_NEW_FILE_CREATED | projfs.PRJ_NOTIFY_FILE_OVERWRITTEN | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_DELETED | projfs.PRJ_NOTIFY_FILE_HANDLE_CLOSED_FILE_MODIFIED,
-			NotificationRoot:    win.GetPointer(""),
+			NotificationRoot:    core.GetPointer(""),
 		},
 		NotificationMappingsCount: 1,
 		PoolThreadCount:           4,
 		ConcurrentThreadCount:     4,
 	}
 	hr = projfs.PrjStartVirtualizing(rootPath, instance.get_callbacks(), instance, options, &instance._instanceHandle)
-	err = win.ErrorByCode(hr)
+	err = core.ErrorByCode(hr)
 	if err != nil {
 		instance.Logger.Printf("Error starting virtualization: %s", err)
 		return err
@@ -156,7 +156,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		var localstate projfs.PRJ_FILE_STATE
 		hr := projfs.PrjGetOnDiskFileState(localpath, &localstate)
 		if hr != 0 {
-			return win.ErrorByCode(hr)
+			return core.ErrorByCode(hr)
 		}
 
 		if (localstate | (projfs.PRJ_FILE_STATE_FULL & projfs.PRJ_FILE_STATE_HYDRATED_PLACEHOLDER)) != 0 {
@@ -166,7 +166,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				instance.Logger.Printf("Updating local file '%s'", path)
 				var placeholderInfo projfs.PRJ_PLACEHOLDER_INFO
 				FillInPlaceholderInfo(&placeholderInfo, remoteinfo)
-				//err = win.ErrorByCode(projfs.PrjWritePlaceholderInfo(instance._instanceHandle, path, &placeholderInfo, uint32(unsafe.Sizeof(placeholderInfo))))
+				//err = core.ErrorByCode(projfs.PrjWritePlaceholderInfo(instance._instanceHandle, path, &placeholderInfo, uint32(unsafe.Sizeof(placeholderInfo))))
 				err = instance.UpdateFileIfNeeded(path, &placeholderInfo, uint32(unsafe.Sizeof(placeholderInfo)), projfs.PRJ_UPDATE_ALLOW_DIRTY_METADATA|projfs.PRJ_UPDATE_ALLOW_DIRTY_DATA)
 				if err != nil {
 					return err
@@ -183,7 +183,7 @@ func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, er
 	var localstate projfs.PRJ_FILE_STATE
 	hr := projfs.PrjGetOnDiskFileState(instance.path_remoteToLocal(remotepath), &localstate)
 	if hr != 0 {
-		return nil, win.ErrorByCode(hr)
+		return nil, core.ErrorByCode(hr)
 	}
 	if (localstate | (projfs.PRJ_FILE_STATE_FULL & projfs.PRJ_FILE_STATE_HYDRATED_PLACEHOLDER)) == 0 {
 		return nil, nil
@@ -222,7 +222,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		var localstate projfs.PRJ_FILE_STATE
 		hr := projfs.PrjGetOnDiskFileState(localpath, &localstate)
 		if hr != 0 {
-			return win.ErrorByCode(hr)
+			return core.ErrorByCode(hr)
 		}
 
 		if (localstate | (projfs.PRJ_FILE_STATE_FULL & projfs.PRJ_FILE_STATE_HYDRATED_PLACEHOLDER)) != 0 {
@@ -287,7 +287,7 @@ func (instance *VirtualizationInstance) ensureVirtualizationFolderExists() (*sys
 
 	if _, err := os.Stat(instance.getVirtualizationInfoFileName()); errors.Is(err, os.ErrNotExist) {
 		uuid, _ := uuid.NewRandom()
-		id := win.BytesToGuid(uuid[:])
+		id := core.BytesToGuid(uuid[:])
 		err = os.WriteFile(instance.getVirtualizationInfoFileName(), uuid[:], 0666)
 		if err != nil {
 			return nil, err
@@ -303,7 +303,7 @@ func (instance *VirtualizationInstance) ensureVirtualizationFolderExists() (*sys
 		return nil, errors.New("invalid virtualization info file")
 	}
 
-	return win.BytesToGuid(bytes), nil
+	return core.BytesToGuid(bytes), nil
 }
 
 func (instance *VirtualizationInstance) get_callbacks() *projfs.PRJ_CALLBACKS {
@@ -321,7 +321,7 @@ func (instance *VirtualizationInstance) get_callbacks() *projfs.PRJ_CALLBACKS {
 
 func (instance *VirtualizationInstance) UpdateFileIfNeeded(relativePath string, placeholderInfo *projfs.PRJ_PLACEHOLDER_INFO, length uint32, updateFlags projfs.PRJ_UPDATE_TYPES) error {
 	var failureReason projfs.PRJ_UPDATE_FAILURE_CAUSES
-	err := win.ErrorByCode(projfs.PrjUpdateFileIfNeeded(instance._instanceHandle, relativePath, placeholderInfo, length, updateFlags, &failureReason))
+	err := core.ErrorByCode(projfs.PrjUpdateFileIfNeeded(instance._instanceHandle, relativePath, placeholderInfo, length, updateFlags, &failureReason))
 	if err != nil {
 		err = fmt.Errorf("UpdateFileIfNeeded failed: %w (reason: %d)", err, failureReason)
 	}

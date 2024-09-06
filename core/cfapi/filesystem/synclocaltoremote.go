@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/balazsgrill/potatodrive/win"
-	"github.com/balazsgrill/potatodrive/win/cfapi"
+	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/core/cfapi"
+	"github.com/spf13/afero"
 )
 
 // isDeletedRemotely check whether file was deleted remotely
@@ -54,6 +55,9 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 
 		path := instance.path_localToRemote(localpath)
 		if localinfo.IsDir() {
+			if dir, err := afero.IsDir(instance.fs, path); dir {
+				return err
+			}
 			return instance.fs.MkdirAll(path, 0777)
 		}
 		if strings.HasPrefix(path, ".") {
@@ -79,14 +83,14 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 
 			if localisnewer {
 				// TODO Add file to queue instead of doing it here
-				instance.NotifyFileState(localpath, win.FileSyncStateUploading)
+				instance.NotifyFileState(localpath, core.FileSyncStateUploading)
 				instance.Logger.Info().Msgf("Updating remote file '%s'", path)
 				err = instance.streamLocalToRemote(path)
 				if err != nil {
 					instance.NotifyFileError(localpath, err)
 					return err
 				} else {
-					instance.NotifyFileState(localpath, win.FileSyncStateDone)
+					instance.NotifyFileState(localpath, core.FileSyncStateDone)
 				}
 			}
 			// mark file as in-sync
@@ -100,7 +104,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 				instance.NotifyFileError(localpath, err)
 				return err
 			} else {
-				instance.NotifyFileState(localpath, win.FileSyncStateDeleted)
+				instance.NotifyFileState(localpath, core.FileSyncStateDeleted)
 			}
 			return err
 		}

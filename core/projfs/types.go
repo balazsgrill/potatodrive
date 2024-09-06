@@ -5,7 +5,7 @@ package projfs
 import (
 	"syscall"
 
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 )
 import "C"
 
@@ -113,7 +113,7 @@ type PRJ_CALLBACK_DATA struct {
 }
 
 func (data *PRJ_CALLBACK_DATA) GetFilePathName() string {
-	return win.GetString(data.FilePathName)
+	return core.GetString(data.FilePathName)
 }
 
 type PRJ_CALLBACKS struct {

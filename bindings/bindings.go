@@ -14,9 +14,9 @@ import (
 
 	"github.com/balazsgrill/potatodrive/bindings/s3"
 	"github.com/balazsgrill/potatodrive/bindings/sftp"
-	"github.com/balazsgrill/potatodrive/win"
-	cfapi "github.com/balazsgrill/potatodrive/win/cfapi/filesystem"
-	prjfs "github.com/balazsgrill/potatodrive/win/projfs/filesystem"
+	"github.com/balazsgrill/potatodrive/core"
+	cfapi "github.com/balazsgrill/potatodrive/core/cfapi/filesystem"
+	prjfs "github.com/balazsgrill/potatodrive/core/projfs/filesystem"
 	"github.com/spf13/afero"
 	"golang.org/x/sys/windows/registry"
 )
@@ -116,8 +116,8 @@ func (f closerFunc) Close() error {
 	return f()
 }
 
-func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(win.ConnectionState)) (io.Closer, error) {
-	var closer win.Virtualization
+func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(core.ConnectionState)) (io.Closer, error) {
+	var closer core.Virtualization
 	var err error
 	if UseCFAPI {
 		err = cfapi.RegisterRootPath(id, localpath)
@@ -133,7 +133,7 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 	}
 
 	internalSynchronize := func() {
-		statecallback(win.ConnectionState{
+		statecallback(core.ConnectionState{
 			ID:             id,
 			SyncInProgress: true,
 			LastSyncError:  nil,
@@ -141,13 +141,13 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 		err = closer.PerformSynchronization()
 		if err != nil {
 			logger.Err(err).Send()
-			statecallback(win.ConnectionState{
+			statecallback(core.ConnectionState{
 				ID:             id,
 				SyncInProgress: false,
 				LastSyncError:  err,
 			})
 		} else {
-			statecallback(win.ConnectionState{
+			statecallback(core.ConnectionState{
 				ID:             id,
 				SyncInProgress: false,
 				LastSyncError:  nil,

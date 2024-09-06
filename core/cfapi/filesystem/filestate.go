@@ -1,12 +1,12 @@
 package filesystem
 
-import "github.com/balazsgrill/potatodrive/win"
+import "github.com/balazsgrill/potatodrive/core"
 
-func (instance *VirtualizationInstance) NotifyFileState(path string, state win.FileSyncStateEnum) {
+func (instance *VirtualizationInstance) NotifyFileState(path string, state core.FileSyncStateEnum) {
 	if instance.handler == nil {
 		return
 	}
-	instance.handler(win.FileSyncState{
+	instance.handler(core.FileSyncState{
 		Path:  path,
 		State: state,
 	})
@@ -16,9 +16,9 @@ func (instance *VirtualizationInstance) NotifyFileError(path string, err error) 
 	if instance.handler == nil {
 		return
 	}
-	instance.handler(win.FileSyncState{
+	instance.handler(core.FileSyncState{
 		Path:      path,
-		State:     win.FileSyncStateError,
+		State:     core.FileSyncStateError,
 		LastError: err,
 	})
 }

@@ -3,16 +3,18 @@ package ui
 import (
 	"log"
 
-	"github.com/balazsgrill/potatodrive/win"
+	"github.com/balazsgrill/potatodrive/core"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
 
 type StatusList struct {
 	walk.ReflectListModelBase
-	statuses     []win.FileSyncState
+	statuses     []core.FileSyncState
 	pathToStatus map[string]int
 }
+
+var _ walk.ReflectListModel = (*StatusList)(nil)
 
 func NewStatusList() *StatusList {
 	return &StatusList{
@@ -20,7 +22,11 @@ func NewStatusList() *StatusList {
 	}
 }
 
-func (sl *StatusList) AddState(state win.FileSyncState) {
+func (sl *StatusList) Items() interface{} {
+	return sl.statuses
+}
+
+func (sl *StatusList) AddState(state core.FileSyncState) {
 	currentindex, exists := sl.pathToStatus[state.Path]
 	if exists {
 		sl.statuses[currentindex] = state
@@ -30,9 +36,20 @@ func (sl *StatusList) AddState(state win.FileSyncState) {
 	}
 }
 
-func StatusWindow() {
+func StatusWindow(model *StatusList) {
 	var mw *walk.MainWindow
 	var lb *walk.ListBox
+
+	styler := &Styler{
+		lb:                  &lb,
+		model:               model,
+		dpi2StampSize:       make(map[int]walk.Size),
+		widthDPI2WsPerLine:  make(map[widthDPI]int),
+		textWidthDPI2Height: make(map[textWidthDPI]int),
+		stateicons:          make(map[core.FileSyncStateEnum]*walk.Icon),
+	}
+
+	styler.loadIcons()
 
 	if err := (MainWindow{
 		AssignTo: &mw,
@@ -58,4 +75,5 @@ func StatusWindow() {
 	}).Create(); err != nil {
 		log.Fatal(err)
 	}
+	mw.Run()
 }
