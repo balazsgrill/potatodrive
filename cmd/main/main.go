@@ -5,6 +5,7 @@ import (
 
 	"github.com/balazsgrill/potatodrive/bindings"
 	"github.com/balazsgrill/potatodrive/core"
+	"github.com/balazsgrill/potatodrive/ui"
 )
 
 var Version string = "0.0.0-dev"
@@ -16,33 +17,45 @@ func main() {
 		log.Print(err)
 		return
 	}
-	mgr.Logger.Info().Str("version", Version).Msg("Starting PotatoDrive")
-	ui := createUI(UIContext{
+
+	icon := ui.CreateNotifyIcon(ui.UIContext{
 		Logger:  mgr.Logger,
 		LogFile: mgr.logfilepath,
+		Version: Version,
 	})
-	defer ui.ni.Dispose()
+	icon.Logger.Info().Str("version", Version).Msg("Starting PotatoDrive")
+	defer icon.Close()
 
 	err = core.CheckAlreadyRunning()
 	if err != nil {
-		ui.NotificationInfo("Can't start PotatoDrive", "Already running")
+		icon.NotificationInfo("Can't start PotatoDrive", "Already running")
 		return
 	}
+
+	statuslist := ui.NewStatusList()
+	icon.AddAction("Show statuses", func() {
+		go ui.StatusWindow(statuslist)
+	})
 
 	keys, _ := mgr.InstanceList()
 	for _, keyname := range keys {
 		go func(keyname string) {
-			err := mgr.StartInstance(keyname, ui.Logger, func(state core.ConnectionState) {
-				if state.LastSyncError != nil {
-					ui.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
-				}
-			})
+			context := bindings.InstanceContext{
+				Logger: icon.Logger,
+				StateCallback: func(state core.ConnectionState) {
+					if state.LastSyncError != nil {
+						icon.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
+					}
+				},
+				FileStateCallback: statuslist.AddState,
+			}
+			err := mgr.StartInstance(keyname, context)
 			if err != nil {
-				ui.Logger.Err(err).Msgf("Failed to start %s", keyname)
+				icon.Logger.Err(err).Msgf("Failed to start %s", keyname)
 			}
 		}(keyname)
 	}
 
 	go bindings.CloseOnSigTerm(mgr)
-	ui.Run()
+	icon.Run()
 }

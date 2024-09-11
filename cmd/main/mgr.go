@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/balazsgrill/potatodrive/bindings"
-	"github.com/balazsgrill/potatodrive/core"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sys/windows/registry"
@@ -44,38 +43,40 @@ func initLogger() (string, zerolog.Logger, io.Closer) {
 	return logfilepath, log.Output(zerolog.MultiLevelWriter(logf, zerolog.NewConsoleWriter())).With().Timestamp().Logger(), logf
 }
 
-func startInstance(parentkey registry.Key, keyname string, logger zerolog.Logger, statecallback func(core.ConnectionState)) (io.Closer, error) {
+func startInstance(parentkey registry.Key, keyname string, context bindings.InstanceContext) (io.Closer, error) {
 	key, err := registry.OpenKey(parentkey, keyname, registry.QUERY_VALUE)
 	if err != nil {
-		logger.Printf("Open key: %v", err)
+		context.Logger.Printf("Open key: %v", err)
 		return nil, err
 	}
 
 	var basec bindings.BaseConfig
 	err = bindings.ReadConfigFromRegistry(key, &basec)
 	if err != nil {
-		logger.Printf("Get base config: %v", err)
+		context.Logger.Printf("Get base config: %v", err)
 		return nil, err
 	}
 	config := bindings.CreateConfigByType(basec.Type)
 	bindings.ReadConfigFromRegistry(key, config)
 	err = config.Validate()
 	if err != nil {
-		logger.Printf("Validate config: %v", err)
+		context.Logger.Printf("Validate config: %v", err)
 		return nil, err
 	}
 	fs, err := config.ToFileSystem()
 	if err != nil {
-		logger.Printf("Create file system: %v", err)
+		context.Logger.Printf("Create file system: %v", err)
 		return nil, err
 	}
 
-	logger.Info().Msgf("Starting %s on %s", keyname, basec.LocalPath)
-	c, err := bindings.BindVirtualizationInstance(keyname, basec.LocalPath, fs, logger.With().Str("instance", keyname).Logger(), statecallback)
+	context.Logger.Info().Msgf("Starting %s on %s", keyname, basec.LocalPath)
+	innercontext := context
+	innercontext.Logger = context.Logger.With().Str("instance", keyname).Logger()
+	c, err := bindings.BindVirtualizationInstance(keyname, basec.LocalPath, fs, innercontext)
 	if err != nil {
 		return nil, err
 	}
-	logger.Info().Msgf("%s started", keyname)
+	context.Logger.Info().Msgf("%s started", keyname)
 	return c, nil
 }
 
@@ -112,8 +113,8 @@ func (m *Manager) InstanceList() ([]string, error) {
 	return m.keylist, nil
 }
 
-func (m *Manager) StartInstance(id string, logger zerolog.Logger, statecallback func(core.ConnectionState)) error {
-	instance, err := startInstance(m.parentkey, id, logger, statecallback)
+func (m *Manager) StartInstance(id string, context bindings.InstanceContext) error {
+	instance, err := startInstance(m.parentkey, id, context)
 	if err != nil {
 		return err
 	}

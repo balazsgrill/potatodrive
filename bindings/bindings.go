@@ -116,7 +116,13 @@ func (f closerFunc) Close() error {
 	return f()
 }
 
-func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, logger zerolog.Logger, statecallback func(core.ConnectionState)) (io.Closer, error) {
+type InstanceContext struct {
+	Logger            zerolog.Logger
+	StateCallback     func(core.ConnectionState)
+	FileStateCallback func(core.FileSyncState)
+}
+
+func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, context InstanceContext) (io.Closer, error) {
 	var closer core.Virtualization
 	var err error
 	if UseCFAPI {
@@ -124,30 +130,31 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 		if err != nil {
 			return nil, err
 		}
-		closer, err = cfapi.StartProjecting(localpath, remotefs, logger)
+		closer, err = cfapi.StartProjecting(localpath, remotefs, context.Logger)
 	} else {
-		closer, err = prjfs.StartProjecting(localpath, remotefs, logger)
+		closer, err = prjfs.StartProjecting(localpath, remotefs, context.Logger)
 	}
 	if err != nil {
 		return nil, err
 	}
+	closer.SetFileStateHandler(context.FileStateCallback)
 
 	internalSynchronize := func() {
-		statecallback(core.ConnectionState{
+		context.StateCallback(core.ConnectionState{
 			ID:             id,
 			SyncInProgress: true,
 			LastSyncError:  nil,
 		})
 		err = closer.PerformSynchronization()
 		if err != nil {
-			logger.Err(err).Send()
-			statecallback(core.ConnectionState{
+			context.Logger.Err(err).Send()
+			context.StateCallback(core.ConnectionState{
 				ID:             id,
 				SyncInProgress: false,
 				LastSyncError:  err,
 			})
 		} else {
-			statecallback(core.ConnectionState{
+			context.StateCallback(core.ConnectionState{
 				ID:             id,
 				SyncInProgress: false,
 				LastSyncError:  nil,

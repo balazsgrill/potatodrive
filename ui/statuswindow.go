@@ -34,6 +34,8 @@ func (sl *StatusList) AddState(state core.FileSyncState) {
 		sl.statuses = append(sl.statuses, state)
 		sl.pathToStatus[state.Path] = len(sl.statuses) - 1
 	}
+	// TODO find a better way to update the list
+	sl.PublishItemsReset()
 }
 
 func StatusWindow(model *StatusList) {

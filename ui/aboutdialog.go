@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func openlink(link *walk.LinkLabelLink) {
 	}
 }
 
-func aboutDialog(_ walk.Form) (int, error) {
+func aboutDialog(_ walk.Form, context UIContext) (int, error) {
 	return MainWindow{
 		Title:   "About PotatoDrive",
 		Icon:    "#2\\0409",
@@ -27,7 +27,7 @@ func aboutDialog(_ walk.Form) (int, error) {
 		Children: []Widget{
 			Label{
 				Alignment: AlignHCenterVCenter,
-				Text:      fmt.Sprintf("PotatoDrive %s", Version),
+				Text:      fmt.Sprintf("PotatoDrive %s", context.Version),
 			},
 			LinkLabel{
 				Alignment:       AlignHCenterVCenter,

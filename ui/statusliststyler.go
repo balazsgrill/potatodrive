@@ -24,7 +24,6 @@ type Styler struct {
 	canvas *walk.Canvas
 	model  *StatusList
 
-	font                *walk.Font
 	dpi2StampSize       map[int]walk.Size
 	widthDPI2WsPerLine  map[widthDPI]int
 	textWidthDPI2Height map[textWidthDPI]int // in native pixels
@@ -58,6 +57,27 @@ const (
 	status_icon_size = 16
 )
 
+func getOperationMessage(state core.FileSyncStateEnum) string {
+	switch state {
+	case core.FileSyncStateDone:
+		return "Done"
+	case core.FileSyncStateDeleted:
+		return "Deleted"
+	case core.FileSyncStateDirty:
+		return "Pending"
+	case core.FileSyncStatePending:
+		return "Pending"
+	case core.FileSyncStateDownloading:
+		return "Downloading"
+	case core.FileSyncStateUploading:
+		return "Uploading"
+	case core.FileSyncStateError:
+		return "Error"
+	default:
+		return "Unknown"
+	}
+}
+
 func (s *Styler) loadIcons() {
 	var err error
 	s.stateicons[core.FileSyncStateDone], err = walk.NewIconExtractedFromFileWithSize(imageres_dll_mun, iconid_done, status_icon_size)
@@ -81,13 +101,17 @@ func (s *Styler) loadIcons() {
 	}
 }
 
+func (s *Styler) getStatusMessage(index int) string {
+	return s.model.statuses[index].Path + "\n" + getOperationMessage(s.model.statuses[index].State)
+}
+
 func (s *Styler) ItemHeight(index, width int) int {
 	dpi := (*s.lb).DPI()
 	marginH := walk.IntFrom96DPI(marginH96dpi, dpi)
 	marginV := walk.IntFrom96DPI(marginV96dpi, dpi)
 	lineW := walk.IntFrom96DPI(lineW96dpi, dpi)
 
-	msg := s.model.statuses[index].Path
+	msg := s.getStatusMessage(index)
 
 	twd := textWidthDPI{msg, width, dpi}
 
@@ -164,7 +188,7 @@ func (s *Styler) StyleItem(style *walk.ListItemStyle) {
 		b.X += stampSize.Width + marginH*2 + lineW
 		b.Width -= stampSize.Width + marginH*4 + lineW
 
-		style.DrawText(item.Path, b, walk.TextEditControl|walk.TextWordbreak|walk.TextEndEllipsis)
+		style.DrawText(s.getStatusMessage(style.Index()), b, walk.TextEditControl|walk.TextWordbreak|walk.TextEndEllipsis)
 	}
 }
 
