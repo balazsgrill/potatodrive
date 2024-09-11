@@ -34,6 +34,7 @@ func (tb *transferBuffer) send(updatehash hash.Hash) error {
 	if tb.count == 0 {
 		return nil
 	}
+	tb.instance.Logger.Debug().Msgf("Sending %d bytes", tb.count)
 	tb.transfer.Buffer = uintptr(unsafe.Pointer(&tb.buffer[0]))
 	tb.transfer.Length = tb.count
 	tb.transfer.Offset = tb.byteOffset
@@ -42,7 +43,7 @@ func (tb *transferBuffer) send(updatehash hash.Hash) error {
 	hr := tb.instance.transferData(tb.info, &tb.transfer)
 
 	if updatehash != nil {
-		updatehash.Write(tb.buffer[tb.byteOffset : tb.byteOffset+tb.transfer.Length])
+		updatehash.Write(tb.buffer[:tb.transfer.Length])
 	}
 
 	tb.byteOffset += tb.count
@@ -102,11 +103,12 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	for count < length {
 		n, err = file.ReadAt(tb.buffer[tb.count:], byteOffset+count)
 		count += int64(n)
+		tb.count += int64(n)
 		if err == io.EOF {
+			instance.Logger.Debug().Msgf("Stream ended at %d bytes", count)
 			err = nil
 			break
 		}
-		tb.count += int64(n)
 		if tb.count >= BUFFER_SIZE {
 			err = tb.send(updatehash)
 			if err != nil {

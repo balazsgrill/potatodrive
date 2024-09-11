@@ -162,6 +162,7 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 }
 
 func (instance *VirtualizationInstance) setInSync(localpath string) error {
+	instance.Logger.Info().Msgf("Set in-sync '%s'", localpath)
 	placeholderstate, err := getPlaceholderState(localpath)
 	if err != nil {
 		return err
@@ -198,42 +199,6 @@ func (instance *VirtualizationInstance) setInSync(localpath string) error {
 		}
 	}
 	return nil
-}
-
-func (instance *VirtualizationInstance) streamLocalToRemote(filename string) error {
-	localpath := instance.path_remoteToLocal(filename)
-	file, err := os.Open(localpath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	data := make([]byte, 1024*1024)
-	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return err
-	}
-	defer targetfile.Close()
-
-	hash := md5.New()
-	for {
-		n, err := file.Read(data)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
-		}
-		_, err = hash.Write(data[:n])
-		if err != nil {
-			return err
-		}
-		_, err = targetfile.Write(data[:n])
-		if err != nil {
-			return err
-		}
-	}
-
-	return instance.remoteCacheState.UpdateHash(filename, hash.Sum(nil))
 }
 
 func (instance *VirtualizationInstance) localHash(remotepath string) ([]byte, error) {
