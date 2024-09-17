@@ -122,6 +122,18 @@ type InstanceContext struct {
 	FileStateCallback func(core.FileSyncState)
 }
 
+func (context InstanceContext) ConnectionStateChanged(id string, syninprogress bool, err error) {
+	if context.StateCallback == nil {
+		return
+	}
+	state := core.ConnectionState{
+		ID:             id,
+		SyncInProgress: syninprogress,
+		LastSyncError:  err,
+	}
+	context.StateCallback(state)
+}
+
 func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, context InstanceContext) (io.Closer, error) {
 	var closer core.Virtualization
 	var err error
@@ -140,25 +152,13 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 	closer.SetFileStateHandler(context.FileStateCallback)
 
 	internalSynchronize := func() {
-		context.StateCallback(core.ConnectionState{
-			ID:             id,
-			SyncInProgress: true,
-			LastSyncError:  nil,
-		})
+		context.ConnectionStateChanged(id, true, nil)
 		err = closer.PerformSynchronization()
 		if err != nil {
 			context.Logger.Err(err).Send()
-			context.StateCallback(core.ConnectionState{
-				ID:             id,
-				SyncInProgress: false,
-				LastSyncError:  err,
-			})
+			context.ConnectionStateChanged(id, false, err)
 		} else {
-			context.StateCallback(core.ConnectionState{
-				ID:             id,
-				SyncInProgress: false,
-				LastSyncError:  nil,
-			})
+			context.ConnectionStateChanged(id, false, nil)
 		}
 	}
 
