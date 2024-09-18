@@ -61,6 +61,10 @@ func (i *testInstance) start() {
 	if err != nil {
 		log.Fatal().Err(err).Send()
 	}
+	err = i.closer.PerformSynchronization()
+	if err != nil {
+		log.Fatal().Err(err).Send()
+	}
 }
 
 func (i *testInstance) osWriteFile(filename string, content string) error {
