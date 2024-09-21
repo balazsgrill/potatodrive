@@ -72,7 +72,7 @@ func startInstance(parentkey registry.Key, keyname string, context bindings.Inst
 	context.Logger.Info().Msgf("Starting %s on %s", keyname, basec.LocalPath)
 	innercontext := context
 	innercontext.Logger = context.Logger.With().Str("instance", keyname).Logger()
-	c, err := bindings.BindVirtualizationInstance(keyname, basec.LocalPath, fs, innercontext)
+	c, err := bindings.BindVirtualizationInstance(keyname, &basec, fs, innercontext)
 	if err != nil {
 		return nil, err
 	}

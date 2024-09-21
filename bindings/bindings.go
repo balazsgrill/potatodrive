@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
 	"github.com/balazsgrill/potatodrive/bindings/s3"
@@ -28,9 +29,24 @@ type BindingConfig interface {
 	ToFileSystem() (afero.Fs, error)
 }
 
+const (
+	APIType_CFAPI           = "cfapi"
+	APIType_PRJFS           = "prjfs"
+	APIType_CFAPI_Simplfied = "cfapi-simplified"
+)
+
 type BaseConfig struct {
 	LocalPath string `flag:"localpath,Local folder" reg:"LocalPath"`
 	Type      string `flag:"type,Type of binding" reg:"Type"`
+	API       string `flag:"api,Type of API to be used of" reg:"API"`
+}
+
+func (config *BaseConfig) IsCFAPI() bool {
+	return config.API == "" || config.API == APIType_CFAPI || config.API == APIType_CFAPI_Simplfied
+}
+
+func (config *BaseConfig) IsSimplfied() bool {
+	return config.API == APIType_CFAPI_Simplfied
 }
 
 func ConfigToFlags(config any) {
@@ -134,17 +150,23 @@ func (context InstanceContext) ConnectionStateChanged(id string, syninprogress b
 	context.StateCallback(state)
 }
 
-func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, context InstanceContext) (io.Closer, error) {
+func BindVirtualizationInstance(id string, config *BaseConfig, remotefs afero.Fs, context InstanceContext) (io.Closer, error) {
 	var closer core.Virtualization
 	var err error
-	if UseCFAPI {
-		err = cfapi.RegisterRootPath(id, localpath)
+	if config.IsCFAPI() {
+		if config.IsSimplfied() {
+			uid := uuid.NewMD5(uuid.UUID{}, []byte(id))
+			gid := core.BytesToGuid(uid[:])
+			err = cfapi.RegisterRootPathSimple(*gid, config.LocalPath)
+		} else {
+			err = cfapi.RegisterRootPath(id, config.LocalPath)
+		}
 		if err != nil {
 			return nil, err
 		}
-		closer, err = cfapi.StartProjecting(localpath, remotefs, context.Logger)
+		closer, err = cfapi.StartProjecting(config.LocalPath, remotefs, context.Logger)
 	} else {
-		closer, err = prjfs.StartProjecting(localpath, remotefs, context.Logger)
+		closer, err = prjfs.StartProjecting(config.LocalPath, remotefs, context.Logger)
 	}
 	if err != nil {
 		return nil, err
@@ -174,6 +196,10 @@ func BindVirtualizationInstance(id string, localpath string, remotefs afero.Fs, 
 
 	return (closerFunc)(func() error {
 		t.Stop()
-		return closer.Close()
+		err := closer.Close()
+		if config.IsCFAPI() && config.IsSimplfied() {
+			cfapi.UnregisterRootPathSimple(config.LocalPath)
+		}
+		return err
 	}), nil
 }

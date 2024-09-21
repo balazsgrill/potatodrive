@@ -52,6 +52,8 @@ jobs:
     - name: Get tools
       run: |
         go install github.com/akavel/rsrc@latest 
+        go install github.com/minio/minio@latest
+        go install github.com/minio/mc@latest
 
     - name: Test
       run: go test -v ./...
