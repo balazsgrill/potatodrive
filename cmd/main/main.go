@@ -18,11 +18,15 @@ func main() {
 		return
 	}
 
-	icon := ui.CreateNotifyIcon(ui.UIContext{
+	uicontext := &ui.UIContext{
 		Logger:  mgr.Logger,
 		LogFile: mgr.logfilepath,
 		Version: Version,
-	})
+	}
+	statuslist := ui.NewStatusList()
+	ui.CreateStatusWindow(uicontext, statuslist)
+
+	icon := ui.CreateNotifyIcon(uicontext)
 	icon.Logger.Info().Str("version", Version).Msg("Starting PotatoDrive")
 	defer icon.Close()
 
@@ -32,9 +36,8 @@ func main() {
 		return
 	}
 
-	statuslist := ui.NewStatusList()
 	icon.AddAction("Show statuses", func() {
-		go ui.StatusWindow(statuslist)
+		uicontext.MainWindow.Show()
 	})
 
 	keys, _ := mgr.InstanceList()
@@ -47,7 +50,11 @@ func main() {
 						icon.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
 					}
 				},
-				FileStateCallback: statuslist.AddState,
+				FileStateCallback: func(fss core.FileSyncState) {
+					go uicontext.MainWindow.Synchronize(func() {
+						statuslist.AddState(fss)
+					})
+				},
 			}
 			err := mgr.StartInstance(keyname, context)
 			if err != nil {

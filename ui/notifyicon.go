@@ -16,10 +16,12 @@ type UIContext struct {
 	Logger  zerolog.Logger
 	LogFile string
 	Version string
+
+	*walk.MainWindow
 }
 
 type NotifyIcon struct {
-	UIContext
+	*UIContext
 
 	*walk.MainWindow
 	zerolog.Logger
@@ -66,7 +68,7 @@ func (ui *NotifyIcon) Close() {
 	ui.ni.Dispose()
 }
 
-func CreateNotifyIcon(context UIContext) *NotifyIcon {
+func CreateNotifyIcon(context *UIContext) *NotifyIcon {
 	ui := &NotifyIcon{
 		UIContext: context,
 	}

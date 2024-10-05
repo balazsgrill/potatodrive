@@ -16,7 +16,7 @@ func openlink(link *walk.LinkLabelLink) {
 	}
 }
 
-func aboutDialog(_ walk.Form, context UIContext) (int, error) {
+func aboutDialog(_ walk.Form, context *UIContext) (int, error) {
 	return MainWindow{
 		Title:   "About PotatoDrive",
 		Icon:    "#2\\0409",
