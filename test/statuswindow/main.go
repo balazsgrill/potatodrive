@@ -8,5 +8,5 @@ import (
 func main() {
 	list := ui.NewStatusList()
 	list.AddState(core.FileSyncState{Path: "C:\\test1.txt", State: core.FileSyncStateDone})
-	ui.StatusWindow(list)
+	//ui.StatusWindow(list)
 }

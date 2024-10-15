@@ -54,6 +54,7 @@ jobs:
         go install github.com/akavel/rsrc@latest 
         go install github.com/minio/minio@latest
         go install github.com/minio/mc@latest
+        wget -o "${{ env.GOBIN}}\thrift.exe" https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe
 
     - name: Test
       run: go test -v ./...

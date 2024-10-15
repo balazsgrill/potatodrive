@@ -1,6 +1,8 @@
 module github.com/balazsgrill/potatodrive
 
-go 1.21.0
+go 1.22.0
+
+toolchain go1.23.0
 
 require (
 	github.com/aws/aws-sdk-go v1.54.20
@@ -16,6 +18,7 @@ require (
 )
 
 require (
+	github.com/apache/thrift v0.21.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
