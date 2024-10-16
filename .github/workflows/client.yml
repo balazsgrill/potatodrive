@@ -56,12 +56,12 @@ jobs:
         go install github.com/minio/mc@latest
         curl -o '${{ env.GOBIN }}\thrift.exe' 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
 
+    - name: Generate
+      run: go generate ./...
+
     - name: Test
       run: go test -v ./...
     
-    - name: Generate
-      run: go generate ./...
-      
     - name: Set version to manifest
       uses: rvolo/xml-replace-action@v0.2
       with:
