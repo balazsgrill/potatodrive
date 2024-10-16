@@ -49,19 +49,12 @@ jobs:
       with:
         go-version: '1.23'
 
-    - name: Download thrift
-      uses: 'joncloud/download-install-action@main'
-      with:
-        checksum-url: 'https://www.apache.org/dist/thrift/0.21.0/thrift-0.21.0.exe.sha256'
-        checksum-entry: 'thrift-0.21.0.exe'
-        download-url: 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
-        target-path: '${{ env.GOBIN }}\thrift.exe'
-
     - name: Get tools
       run: |
         go install github.com/akavel/rsrc@latest 
         go install github.com/minio/minio@latest
         go install github.com/minio/mc@latest
+        curl -o '${{ env.GOBIN }}\thrift.exe' 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
 
     - name: Test
       run: go test -v ./...
