@@ -54,8 +54,7 @@ jobs:
         go install github.com/akavel/rsrc@latest 
         go install github.com/minio/minio@latest
         go install github.com/minio/mc@latest
-        curl -o thrift.exe 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
-        echo echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
+        curl -o thrift.exe --output-dir '${{ runner.tool_cache }}' 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
 
     - name: Generate
       run: go generate ./...
