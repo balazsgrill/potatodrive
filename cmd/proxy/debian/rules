@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+clean:
+	rm -f potatodrive-proxy
+
+build:
+	cp ../potatodrive-proxy_${DEB_HOST_ARCH} potatodrive-proxy
+
+binary:
+	mkdir -p debian/potatodrive-proxy
+	mkdir -p debian/potatodrive-proxy/usr/bin
+	sudo cp potatodrive-proxy debian/potatodrive-proxy/usr/bin/
+	dh_gencontrol
+	dh_builddeb

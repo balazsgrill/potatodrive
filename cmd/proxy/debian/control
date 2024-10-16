@@ -1,0 +1,11 @@
+Source: potatodrive-proxy
+Maintainer: Balázs Grill <balazs.grill@live.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: potatodrive-proxy
+Architecture: any
+Depends:
+Description: Proxy server for PotatoDrive
