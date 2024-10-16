@@ -90,7 +90,7 @@ jobs:
       env:
         GOOS: "linux"
         GOARCH: "amd64"
-      run: go build -o potatodrive-proxy-amd64 -X 'main.Version=${{ env.VERSION }}' ./cmd/proxy
+      run: go build -o potatodrive-proxy-amd64 -ldflags="-X 'main.Version=${{ env.VERSION }}'" ./cmd/proxy
     - uses: actions/upload-artifact@v4
       with:
         name: potatodrive-proxy-amd64
@@ -100,7 +100,7 @@ jobs:
         GOOS: "linux"
         GOARCH: "arm"
         GOARM: "5"
-      run: go build -o potatodrive-proxy-armhf -X 'main.Version=${{ env.VERSION }}' ./cmd/proxy
+      run: go build -o potatodrive-proxy-armhf -ldflags="-X 'main.Version=${{ env.VERSION }}'" ./cmd/proxy
     - uses: actions/upload-artifact@v4
       with:
         name: potatodrive-proxy-armhf
