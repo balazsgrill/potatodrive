@@ -49,13 +49,18 @@ jobs:
       with:
         go-version: '1.23'
 
+    - name: Download and install thrift
+      run: |
+        $thriftUrl = 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
+        $thriftPath = Join-Path $env:RUNNER_TOOL_CACHE 'thrift.exe'
+        Invoke-WebRequest -Uri $thriftUrl -OutFile $thriftPath
+        echo "$env:RUNNER_TOOL_CACHE" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
     - name: Get tools
       run: |
         go install github.com/akavel/rsrc@latest 
         go install github.com/minio/minio@latest
         go install github.com/minio/mc@latest
-        curl -o thrift.exe  --output-dir '${{ runner.tool_cache }}' 'https://dlcdn.apache.org/thrift/0.21.0/thrift-0.21.0.exe'
-        echo echo '${{ runner.tool_cache }}' >> "$GITHUB_PATH"
 
     - name: Generate
       env:
