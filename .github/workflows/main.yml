@@ -36,7 +36,7 @@ jobs:
       with:
         variables: |
           VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.release_info.outputs.version }}" : "0.0.0.0"
-    - run: echo "VERSION=$env:VERSION" >> $GITHUB_ENV
+    - run: echo "VERSION=${{ env:VERSION }}" >> $GITHUB_ENV
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
@@ -168,11 +168,11 @@ jobs:
         echo "Version: $VERSION"
         envsubst < debian/changelog.tpl > debian/changelog
         dpkg-buildpackage --target-arch amd64 --host-arch amd64 -b
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v4
       with:
         name: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
         path: "./cmd/potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v4
       with:
         name: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
         path: "./cmd/potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
