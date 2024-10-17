@@ -162,6 +162,7 @@ jobs:
       with:
         name: potatodrive-proxy-armhf
         path: ./cmd/proxy/
+    - run: ls ./cmd/proxy/
     - name: Package-armhf
       working-directory: ./cmd/proxy
       env:
