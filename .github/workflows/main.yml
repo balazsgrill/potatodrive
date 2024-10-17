@@ -12,6 +12,8 @@ jobs:
 
   build: 
     runs-on: windows-latest
+    outputs:
+      VERSION: ${{ env.VERSION }}
     steps:
     - uses: actions/checkout@v4
     
@@ -36,7 +38,7 @@ jobs:
       with:
         variables: |
           VERSION: '${{ github.ref_type }}' == 'tag' ? "${{ steps.release_info.outputs.version }}" : "0.0.0.0"
-    - run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_ENV
+    - run: echo "VERSION ${{ env.VERSION }}"
 
     - name: enable Projection FS
       run: Enable-WindowsOptionalFeature -Online -FeatureName Client-ProjFS -NoRestart
@@ -111,6 +113,7 @@ jobs:
     runs-on: windows-latest
     needs: build
     steps:    
+    - run: echo  "VERSION ${{ need.build.outputs.VERSION }}"
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:
@@ -124,7 +127,7 @@ jobs:
         _input-file: PotatoDrive-vars.wxi.tpl
         _output-file: PotatoDrive-vars.wxi
         _format-key: '%%key%%'
-        Version: ${{ env.VERSION}}
+        Version: ${{ need.build.outputs.VERSION}}
     - uses: actions/upload-artifact@v4
       with:
         name: PotatoDrive-vars.wxi
@@ -137,13 +140,14 @@ jobs:
       run: wix build PotatoDrive.wxs -arch x64
     - uses: actions/upload-artifact@v4
       with:
-        name: PotatoDrive_${{ env.VERSION}}.msi
+        name: PotatoDrive_${{ need.build.outputs.VERSION}}.msi
         path: PotatoDrive.msi
 
   debian-packages:
     runs-on: ubuntu-latest
     needs: build
     steps:
+    - run: echo  "VERSION ${{ need.build.outputs.VERSION }}"
     - name: Install tools
       run: |
         sudo apt update
@@ -170,18 +174,19 @@ jobs:
         dpkg-buildpackage --target-arch amd64 --host-arch amd64 -b
     - uses: actions/upload-artifact@v4
       with:
-        name: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
-        path: "./cmd/potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
+        name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
+        path: "./cmd/potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
     - uses: actions/upload-artifact@v4
       with:
-        name: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
-        path: "./cmd/potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
+        name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
+        path: "./cmd/potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
       
   release:
     runs-on: ubuntu-latest
     needs: 
     - installer
     - debian-packages
+    - build
     if: github.ref_type == 'tag'
     steps:
     - name: release
@@ -196,16 +201,16 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
     - uses: actions/download-artifact@master
       with:
-        name: PotatoDrive_${{ env.VERSION}}.msi
-        path: PotatoDrive_${{ env.VERSION}}.msi
+        name: PotatoDrive_${{ need.build.outputs.VERSION}}.msi
+        path: PotatoDrive_${{ need.build.outputs.VERSION}}.msi
     - uses: actions/download-artifact@v1
       with:
-        name: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
-        path: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
+        name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
+        path: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
     - uses: actions/download-artifact@v1
       with:
-        name: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
-        path: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
+        name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
+        path: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
     - name: upload Installer
       uses: actions/upload-release-asset@v1
       env:
@@ -221,8 +226,8 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
-        asset_name: "potatodrive-proxy_${{ env.VERSION }}_amd64.deb"
+        asset_path: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
+        asset_name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_amd64.deb"
         asset_content_type: application/x-deb
     - name: upload armhf deb
       uses: actions/upload-release-asset@v1
@@ -230,6 +235,6 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
-        asset_name: "potatodrive-proxy_${{ env.VERSION }}_armhf.deb"
+        asset_path: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
+        asset_name: "potatodrive-proxy_${{ need.build.outputs.VERSION}}_armhf.deb"
         asset_content_type: application/x-deb
