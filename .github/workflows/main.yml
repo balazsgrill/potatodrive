@@ -136,7 +136,6 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: potatodrive.exe
-        path: potatodrive.exe
     - run: dir
     - name: Create installer
       run: wix build PotatoDrive.wxs -arch x64
@@ -155,14 +154,14 @@ jobs:
       run: |
         sudo apt update
         sudo apt-get install -y build-essential devscripts debhelper gettext-base
-    - uses: actions/download-artifact@master
+    - uses: actions/download-artifact@v4
       with:
         name: potatodrive-proxy-amd64
-        path: ./cmd/proxy/potatodrive-proxy-amd64
-    - uses: actions/download-artifact@master
+        path: ./cmd/proxy/
+    - uses: actions/download-artifact@v4
       with:
         name: potatodrive-proxy-armhf
-        path: ./cmd/proxy/potatodrive-proxy-armhf
+        path: ./cmd/proxy/
     - name: Package-armhf
       working-directory: ./cmd/proxy
       env:
@@ -206,18 +205,15 @@ jobs:
         name: ${{ github.ref_name }}
       env:
         GITHUB_TOKEN: ${{ github.token }}
-    - uses: actions/download-artifact@master
+    - uses: actions/download-artifact@v4
       with:
         name: PotatoDrive_${{ needs.build.outputs.VERSION}}.msi
-        path: PotatoDrive_${{ needs.build.outputs.VERSION}}.msi
-    - uses: actions/download-artifact@v1
+    - uses: actions/download-artifact@v4
       with:
         name: "potatodrive-proxy_${{ needs.build.outputs.VERSION}}_armhf.deb"
-        path: "potatodrive-proxy_${{ needs.build.outputs.VERSION}}_armhf.deb"
-    - uses: actions/download-artifact@v1
+    - uses: actions/download-artifact@v4
       with:
         name: "potatodrive-proxy_${{ needs.build.outputs.VERSION}}_amd64.deb"
-        path: "potatodrive-proxy_${{ needs.build.outputs.VERSION}}_amd64.deb"
     - name: upload Installer
       uses: actions/upload-release-asset@v1
       env:
