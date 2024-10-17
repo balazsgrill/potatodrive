@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
+	"github.com/balazsgrill/potatodrive/bindings/proxy/client"
 	"github.com/balazsgrill/potatodrive/bindings/s3"
 	"github.com/balazsgrill/potatodrive/bindings/sftp"
 	"github.com/balazsgrill/potatodrive/core"
@@ -77,6 +78,8 @@ func CreateConfigByType(typestr string) BindingConfig {
 		return &s3.Config{}
 	case "afero-sftp":
 		return &sftp.Config{}
+	case "afero-http":
+		return &client.Config{}
 	}
 	return nil
 }

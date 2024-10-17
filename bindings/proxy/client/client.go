@@ -1,6 +1,7 @@
 package client
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
@@ -8,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-func Connect(url string) (afero.Fs, error) {
+func Connect(url string, httpclient *http.Client) (afero.Fs, error) {
 	conf := &thrift.TConfiguration{
 		ConnectTimeout: time.Second,
 		SocketTimeout:  time.Second,
@@ -19,7 +20,9 @@ func Connect(url string) (afero.Fs, error) {
 		TBinaryStrictWrite: thrift.BoolPtr(true),
 	}
 	protocol := thrift.NewTCompactProtocolFactoryConf(conf)
-	clientfactory := thrift.NewTHttpClientTransportFactory(url)
+	clientfactory := thrift.NewTHttpClientTransportFactoryWithOptions(url, thrift.THttpClientOptions{
+		Client: httpclient,
+	})
 	transport, err := clientfactory.GetTransport(nil)
 	if err != nil {
 		return nil, err

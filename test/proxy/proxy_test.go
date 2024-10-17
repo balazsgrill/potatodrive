@@ -20,7 +20,12 @@ func TestProxyConnection(t *testing.T) {
 	go httpserver.ListenAndServe()
 	defer httpserver.Close()
 
-	fs2, err := client.Connect("http://localhost:18080")
+	clientconifg := &client.Config{
+		URL:       "http://localhost:18080",
+		KeyId:     "",
+		KeySecret: "",
+	}
+	fs2, err := clientconifg.ToFileSystem()
 	if err != nil {
 		t.Fatal(err)
 	}
