@@ -1,9 +1,9 @@
 #!/usr/bin/make -f
 clean:
-	rm -f potatodrive-proxy
+	rm -f potatodrive-proxy-${DEB_HOST_ARCH}
 
 build:
-	cp ../potatodrive-proxy_${DEB_HOST_ARCH} potatodrive-proxy
+	cp ../potatodrive-proxy-${DEB_HOST_ARCH} potatodrive-proxy
 
 binary:
 	mkdir -p debian/potatodrive-proxy
