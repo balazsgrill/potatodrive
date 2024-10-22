@@ -1,22 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/balazsgrill/potatodrive/bindings/proxy/server"
-	"github.com/spf13/afero"
 )
 
 var Version string = "0.0.0-dev"
 
 func main() {
 	addr := flag.String("addr", ":8080", "The address to listen on for HTTP requests")
-	directory := flag.String("directory", ".", "The directory to serve files from")
-	keyID := flag.String("key-id", "", "The key ID for authentication")
-	secret := flag.String("secret", "", "The secret for authentication")
+	configfile := flag.String("config", "", "Path to the configuration file")
 	help := flag.Bool("help", false, "Show help message")
 	ver := flag.Bool("version", false, "Show version information")
 	flag.Parse()
@@ -31,12 +29,22 @@ func main() {
 		os.Exit(0)
 	}
 
-	fs := afero.NewBasePathFs(afero.NewOsFs(), *directory)
-	mux := http.NewServeMux()
+	if *configfile == "" {
+		fmt.Println("Please provide a configuration file")
+		os.Exit(1)
+	}
 
-	// Wrap the handler with authentication middleware
-	authenticatedHandler := authMiddleware(*keyID, *secret, server.Handler(fs))
-	mux.HandleFunc("/", authenticatedHandler)
+	config := loadConfig(*configfile)
+
+	mux := http.NewServeMux()
+	for _, c := range config {
+		pattern, handler, err := c.ToHandler()
+		if err != nil {
+			fmt.Printf("Error creating handler: %v\n", err)
+			os.Exit(1)
+		}
+		mux.HandleFunc(pattern, handler)
+	}
 
 	httpserver := http.Server{
 		Addr:    *addr,
@@ -45,16 +53,21 @@ func main() {
 	httpserver.ListenAndServe()
 }
 
-func authMiddleware(keyID, secret string, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		providedKeyID := r.Header.Get("X-Key-ID")
-		providedSecret := r.Header.Get("X-Secret")
-
-		if providedKeyID != keyID || providedSecret != secret {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+func loadConfig(configfile string) []server.Config {
+	var config []server.Config
+	if configfile != "" {
+		file, err := os.Open(configfile)
+		if err != nil {
+			fmt.Printf("Error opening config file: %v\n", err)
+			os.Exit(1)
 		}
+		defer file.Close()
 
-		next.ServeHTTP(w, r)
+		decoder := json.NewDecoder(file)
+		if err := decoder.Decode(&config); err != nil {
+			fmt.Printf("Error decoding config file: %v\n", err)
+			os.Exit(1)
+		}
 	}
+	return config
 }
