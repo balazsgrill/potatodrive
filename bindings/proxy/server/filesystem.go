@@ -26,17 +26,17 @@ func New(fs afero.Fs) proxy.Filesystem {
 var _ proxy.Filesystem = (*FilesystemServer)(nil)
 
 func (fs *FilesystemServer) Chown(ctx context.Context, name string, uid int32, gid int32) (_err error) {
-	return fs.fs.Chown(name, int(uid), int(gid))
+	return ewrap(fs.fs.Chown(name, int(uid), int(gid)))
 }
 
 func (fs *FilesystemServer) Chtimes(ctx context.Context, name string, atime proxy.Timestamp, mtime proxy.Timestamp) (_err error) {
-	return fs.fs.Chtimes(name, time.UnixMicro(int64(atime)), time.UnixMicro(int64(mtime)))
+	return ewrap(fs.fs.Chtimes(name, time.UnixMicro(int64(atime)), time.UnixMicro(int64(mtime))))
 }
 
 func (fs *FilesystemServer) Create(ctx context.Context, name string) (_r proxy.FileHandle, _err error) {
 	file, err := fs.fs.Create(name)
 	if err != nil {
-		return 0, err
+		return 0, ewrap(err)
 	}
 	fs.count++
 	handle := proxy.FileHandle(fs.count)
@@ -45,11 +45,11 @@ func (fs *FilesystemServer) Create(ctx context.Context, name string) (_r proxy.F
 }
 
 func (fs *FilesystemServer) Mkdir(ctx context.Context, path string, perm proxy.FileMode) (_err error) {
-	return fs.fs.Mkdir(path, os.FileMode(perm))
+	return ewrap(fs.fs.Mkdir(path, os.FileMode(perm)))
 }
 
 func (fs *FilesystemServer) MkdirAll(ctx context.Context, path string, perm proxy.FileMode) (_err error) {
-	return fs.fs.MkdirAll(path, os.FileMode(perm))
+	return ewrap(fs.fs.MkdirAll(path, os.FileMode(perm)))
 }
 
 func (fs *FilesystemServer) Name(ctx context.Context) (_r string, _err error) {
@@ -59,7 +59,7 @@ func (fs *FilesystemServer) Name(ctx context.Context) (_r string, _err error) {
 func (fs *FilesystemServer) Open(ctx context.Context, name string) (_r proxy.FileHandle, _err error) {
 	file, err := fs.fs.Open(name)
 	if err != nil {
-		return 0, err
+		return 0, ewrap(err)
 	}
 	fs.count++
 	handle := proxy.FileHandle(fs.count)
@@ -70,7 +70,7 @@ func (fs *FilesystemServer) Open(ctx context.Context, name string) (_r proxy.Fil
 func (fs *FilesystemServer) OpenFile(ctx context.Context, name string, flag int32, perm proxy.FileMode) (_r proxy.FileHandle, _err error) {
 	file, err := fs.fs.OpenFile(name, int(flag), os.FileMode(perm))
 	if err != nil {
-		return 0, err
+		return 0, ewrap(err)
 	}
 	fs.count++
 	handle := proxy.FileHandle(fs.count)
@@ -79,15 +79,15 @@ func (fs *FilesystemServer) OpenFile(ctx context.Context, name string, flag int3
 }
 
 func (fs *FilesystemServer) Remove(ctx context.Context, name string) (_err error) {
-	return fs.fs.Remove(name)
+	return ewrap(fs.fs.Remove(name))
 }
 
 func (fs *FilesystemServer) RemoveAll(ctx context.Context, name string) (_err error) {
-	return fs.fs.RemoveAll(name)
+	return ewrap(fs.fs.RemoveAll(name))
 }
 
 func (fs *FilesystemServer) Rename(ctx context.Context, oldname string, newname string) (_err error) {
-	return fs.fs.Rename(oldname, newname)
+	return ewrap(fs.fs.Rename(oldname, newname))
 }
 
 func wrapFileInfo(file os.FileInfo) *proxy.FileInfo {

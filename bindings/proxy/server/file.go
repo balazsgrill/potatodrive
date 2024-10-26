@@ -14,7 +14,7 @@ func (fs *FilesystemServer) Fclose(ctx context.Context, file proxy.FileHandle) (
 	}
 	err := f.Close()
 	if err != nil {
-		return err
+		return ewrap(err)
 	}
 	delete(fs.openfiles, file)
 	return nil
@@ -35,7 +35,7 @@ func (fs *FilesystemServer) Fread(ctx context.Context, file proxy.FileHandle, bu
 	}
 	buffer := make([]byte, bufferSize)
 	n, err := f.Read(buffer)
-	return buffer[:n], err
+	return buffer[:n], ewrap(err)
 }
 
 func (fs *FilesystemServer) FreadAt(ctx context.Context, file proxy.FileHandle, bufferSize int64, offset int64) (_r []byte, _err error) {
@@ -61,7 +61,7 @@ func (fs *FilesystemServer) Freaddir(ctx context.Context, file proxy.FileHandle,
 		wrappedInfos[i] = wrapFileInfo(info)
 	}
 
-	return wrappedInfos, err
+	return wrappedInfos, ewrap(err)
 }
 
 func (fs *FilesystemServer) Freaddirnames(ctx context.Context, file proxy.FileHandle, count int32) (_r []string, _err error) {
@@ -69,7 +69,8 @@ func (fs *FilesystemServer) Freaddirnames(ctx context.Context, file proxy.FileHa
 	if !opened {
 		return nil, os.ErrInvalid
 	}
-	return f.Readdirnames(int(count))
+	names, err := f.Readdirnames(int(count))
+	return names, ewrap(err)
 }
 
 func (fs *FilesystemServer) Fseek(ctx context.Context, file proxy.FileHandle, offset int64, whence int32) (_r int64, _err error) {
@@ -77,7 +78,8 @@ func (fs *FilesystemServer) Fseek(ctx context.Context, file proxy.FileHandle, of
 	if !opened {
 		return 0, os.ErrInvalid
 	}
-	return f.Seek(offset, int(whence))
+	pos, err := f.Seek(offset, int(whence))
+	return pos, ewrap(err)
 }
 
 func (fs *FilesystemServer) Fstat(ctx context.Context, file proxy.FileHandle) (_r *proxy.FileInfo, _err error) {
@@ -87,7 +89,7 @@ func (fs *FilesystemServer) Fstat(ctx context.Context, file proxy.FileHandle) (_
 	}
 	info, err := f.Stat()
 	if err != nil {
-		return nil, err
+		return nil, ewrap(err)
 	}
 	return wrapFileInfo(info), nil
 }
@@ -97,7 +99,7 @@ func (fs *FilesystemServer) Fsync(ctx context.Context, file proxy.FileHandle) (_
 	if !opened {
 		return os.ErrInvalid
 	}
-	return f.Sync()
+	return ewrap(f.Sync())
 }
 
 func (fs *FilesystemServer) Ftruncate(ctx context.Context, file proxy.FileHandle, size int64) (_err error) {
@@ -105,7 +107,7 @@ func (fs *FilesystemServer) Ftruncate(ctx context.Context, file proxy.FileHandle
 	if !opened {
 		return os.ErrInvalid
 	}
-	return f.Truncate(size)
+	return ewrap(f.Truncate(size))
 }
 
 func (fs *FilesystemServer) Fwrite(ctx context.Context, file proxy.FileHandle, buffer []byte) (_r int32, _err error) {
@@ -114,7 +116,7 @@ func (fs *FilesystemServer) Fwrite(ctx context.Context, file proxy.FileHandle, b
 		return 0, os.ErrInvalid
 	}
 	r, err := f.Write(buffer)
-	return int32(r), err
+	return int32(r), ewrap(err)
 }
 
 func (fs *FilesystemServer) FwriteAt(ctx context.Context, file proxy.FileHandle, buffer []byte, offset int64) (_r int32, _err error) {
@@ -123,7 +125,7 @@ func (fs *FilesystemServer) FwriteAt(ctx context.Context, file proxy.FileHandle,
 		return 0, os.ErrInvalid
 	}
 	r, err := f.WriteAt(buffer, offset)
-	return int32(r), err
+	return int32(r), ewrap(err)
 }
 
 func (fs *FilesystemServer) FwriteString(ctx context.Context, file proxy.FileHandle, value string) (_r int32, _err error) {
@@ -132,5 +134,5 @@ func (fs *FilesystemServer) FwriteString(ctx context.Context, file proxy.FileHan
 		return 0, os.ErrInvalid
 	}
 	r, err := f.WriteString(value)
-	return int32(r), err
+	return int32(r), ewrap(err)
 }
