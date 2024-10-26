@@ -45,8 +45,6 @@ func (instance *VirtualizationInstance) isDeletedRemotely(remotepath string, loc
 }
 
 func (instance *VirtualizationInstance) syncLocalToRemote() error {
-	instance.lock.Lock()
-	defer instance.lock.Unlock()
 	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
 		instance.Logger.Debug().Msgf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
@@ -84,7 +82,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			remoteinfo, err := instance.fs.Stat(path)
 			var localisnewer bool
 			if os.IsNotExist(err) {
-				localisnewer = false
+				localisnewer = true
 			} else if err != nil {
 				return fmt.Errorf("syncLocalToRemote.1 %w", err)
 			} else if remoteinfo == nil {
@@ -107,7 +105,6 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			}
 			// mark file as in-sync
 			return instance.setInSync(localpath)
-
 		}
 
 		if deleted {

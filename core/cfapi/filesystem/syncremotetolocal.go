@@ -14,8 +14,6 @@ import (
 )
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
-	instance.lock.Lock()
-	defer instance.lock.Unlock()
 	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
 		instance.Logger.Debug().Msgf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
