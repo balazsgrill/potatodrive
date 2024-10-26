@@ -6,10 +6,12 @@ import (
 
 	"github.com/balazsgrill/potatodrive/bindings/proxy/client"
 	"github.com/balazsgrill/potatodrive/bindings/proxy/server"
+	"github.com/rs/zerolog"
 	"github.com/spf13/afero"
 )
 
 func TestProxyConnection(t *testing.T) {
+	logger := zerolog.New(zerolog.NewTestWriter(t))
 	fs := afero.NewMemMapFs()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", server.Handler(fs))
@@ -25,7 +27,7 @@ func TestProxyConnection(t *testing.T) {
 		KeyId:     "",
 		KeySecret: "",
 	}
-	fs2, err := clientconifg.ToFileSystem()
+	fs2, err := clientconifg.ToFileSystem(logger)
 	if err != nil {
 		t.Fatal(err)
 	}

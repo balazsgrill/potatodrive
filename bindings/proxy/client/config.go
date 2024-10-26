@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/afero"
 )
 
@@ -37,7 +38,7 @@ func (a *authenticator) RoundTrip(r *http.Request) (*http.Response, error) {
 	return a.delegate.RoundTrip(r)
 }
 
-func (c *Config) ToFileSystem() (afero.Fs, error) {
+func (c *Config) ToFileSystem(logger zerolog.Logger) (afero.Fs, error) {
 	httpclient := &http.Client{}
 	httpclient.Transport = &authenticator{
 		Config:   c,

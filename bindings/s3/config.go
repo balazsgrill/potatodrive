@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/balazsgrill/potatodrive/bindings/utils"
 	s3 "github.com/fclairamb/afero-s3"
+	"github.com/rs/zerolog"
 	"github.com/spf13/afero"
 )
 
@@ -39,7 +40,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) ToFileSystem() (afero.Fs, error) {
+func (c *Config) ToFileSystem(logger zerolog.Logger) (afero.Fs, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:           aws.String(c.Region),
 		Endpoint:         aws.String(c.Endpoint),

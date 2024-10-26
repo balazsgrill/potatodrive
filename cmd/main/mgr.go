@@ -46,26 +46,30 @@ func initLogger() (string, zerolog.Logger, io.Closer) {
 func startInstance(parentkey registry.Key, keyname string, context bindings.InstanceContext) (io.Closer, error) {
 	key, err := registry.OpenKey(parentkey, keyname, registry.QUERY_VALUE)
 	if err != nil {
-		context.Logger.Printf("Open key: %v", err)
+		context.Logger.Error().Msgf("Open key: %v", err)
 		return nil, err
 	}
 
 	var basec bindings.BaseConfig
 	err = bindings.ReadConfigFromRegistry(key, &basec)
 	if err != nil {
-		context.Logger.Printf("Get base config: %v", err)
+		context.Logger.Error().Msgf("Get base config: %v", err)
 		return nil, err
 	}
 	config := bindings.CreateConfigByType(basec.Type)
-	bindings.ReadConfigFromRegistry(key, config)
-	err = config.Validate()
+	err = bindings.ReadConfigFromRegistry(key, config)
 	if err != nil {
-		context.Logger.Printf("Validate config: %v", err)
+		context.Logger.Error().Msgf("Read config: %v", err)
 		return nil, err
 	}
-	fs, err := config.ToFileSystem()
+	err = config.Validate()
 	if err != nil {
-		context.Logger.Printf("Create file system: %v", err)
+		context.Logger.Error().Msgf("Validate config: %v", err)
+		return nil, err
+	}
+	fs, err := config.ToFileSystem(context.Logger)
+	if err != nil {
+		context.Logger.Error().Msgf("Create file system: %v", err)
 		return nil, err
 	}
 

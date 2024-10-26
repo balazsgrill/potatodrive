@@ -75,6 +75,9 @@ func setup(t *testing.T) *testInstance {
 }
 
 func (instance *testInstance) start(t *testing.T) {
+	instancecontext := bindings.InstanceContext{
+		Logger: zerolog.New(zerolog.NewTestWriter(t)),
+	}
 	config := s3.Config{
 		Endpoint:  "localhost:9000",
 		Region:    "us-east-1", // default region
@@ -83,13 +86,11 @@ func (instance *testInstance) start(t *testing.T) {
 		KeySecret: MINIO_SECRET_KEY,
 		UseSSL:    false,
 	}
-	fs, err := config.ToFileSystem()
+	fs, err := config.ToFileSystem(instancecontext.Logger)
 	if err != nil {
 		t.Fatal(err)
 	}
-	instancecontext := bindings.InstanceContext{
-		Logger: zerolog.New(zerolog.NewTestWriter(t)),
-	}
+
 	uid := uuid.NewMD5(uuid.UUID{}, []byte("test"))
 	gid := core.BytesToGuid(uid[:])
 	err = filesystem.RegisterRootPathSimple(*gid, instance.fsdir)

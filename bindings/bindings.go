@@ -27,7 +27,7 @@ const UseCFAPI bool = true
 
 type BindingConfig interface {
 	Validate() error
-	ToFileSystem() (afero.Fs, error)
+	ToFileSystem(zerolog.Logger) (afero.Fs, error)
 }
 
 const (
@@ -99,8 +99,13 @@ func ReadConfigFromRegistry(key registry.Key, config any) error {
 				if os.IsNotExist(err) {
 					continue
 				}
-				if err != nil {
-					return err
+				if err == registry.ErrUnexpectedType {
+					// attempt to read as multi-string
+					values, _, err := key.GetStringsValue(tag)
+					if err != nil {
+						return err
+					}
+					value = strings.Join(values, "\n")
 				}
 				fieldvalue.SetString(value)
 			case reflect.Bool:
