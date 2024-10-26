@@ -14,6 +14,8 @@ import (
 )
 
 func (instance *VirtualizationInstance) syncRemoteToLocal() error {
+	instance.lock.Lock()
+	defer instance.lock.Unlock()
 	return utils.Walk(instance.fs, "", func(path string, remoteinfo fs.FileInfo, err error) error {
 		instance.Logger.Debug().Msgf("Syncing remote file '%s'", path)
 		if os.IsNotExist(err) {
@@ -22,19 +24,25 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		}
 		if err != nil {
 			instance.Logger.Err(err).Send()
-			return err
+			return fmt.Errorf("syncRemoteToLocal.1 %w", err)
 		}
 
 		filename := instance.path_getNameRemote(path)
-		if strings.HasPrefix(filename, ".") {
+		if strings.HasPrefix(filename, ".") && len(filename) > 1 {
+			// do not skip "."
+			if remoteinfo.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
 		}
+
 		localpath := instance.path_remoteToLocal(path)
 		placeholderstate, err := getPlaceholderState(localpath)
 		instance.Logger.Debug().Msgf("Placeholder state for '%s' is %x", localpath, placeholderstate)
 		if os.IsNotExist(err) {
 			if remoteinfo.IsDir() {
 				// local dir does not exist, create it
+				instance.Logger.Debug().Msgf("Creating local dir '%s'", localpath)
 				return os.MkdirAll(localpath, 0777)
 			} else {
 				localdir := filepath.Dir(localpath)
@@ -43,17 +51,17 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				var EntriesProcessed uint32
 				hr := cfapi.CfCreatePlaceholders(core.GetPointer(localdir), &placeholder, 1, cfapi.CF_CREATE_FLAG_NONE, &EntriesProcessed)
 				if hr != 0 {
-					return core.ErrorByCode(hr)
+					return core.ErrorByCodeWithContext("syncRemoteToLocal:CfCreatePlaceholders", hr)
 				}
 				if EntriesProcessed != 1 {
-					return fmt.Errorf("unexpected number of entries processed: %d", EntriesProcessed)
+					return fmt.Errorf("syncRemoteToLocal: unexpected number of entries processed: %d", EntriesProcessed)
 				}
 				// done here, return
 				return nil
 			}
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("syncRemoteToLocal.2 %w", err)
 		}
 
 		insync := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_IN_SYNC) != 0
@@ -67,7 +75,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			var handle syscall.Handle
 			hr := cfapi.CfOpenFileWithOplock(core.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
 			if hr != 0 {
-				return core.ErrorByCode(hr)
+				return core.ErrorByCodeWithContext("syncRemoteToLocal:CfOpenFileWithOplock", hr)
 			}
 			defer cfapi.CfCloseHandle(handle)
 			placeholder := getPlaceholder(remoteinfo)
@@ -77,14 +85,14 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
 				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
 				if hr != 0 {
-					return core.ErrorByCode(hr)
+					return core.ErrorByCodeWithContext("syncRemoteToLocal:CfConvertToPlaceholder", hr)
 				}
 			}
 			if !insync {
 				// updating a placeholder only works if it is marked as in-sync
 				hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
 				if hr != 0 {
-					return core.ErrorByCode(hr)
+					return core.ErrorByCodeWithContext("syncRemoteToLocal:CfSetInSyncState", hr)
 				}
 			}
 			var fileRange cfapi.CF_FILE_RANGE
@@ -92,7 +100,7 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 			fileRange.Length = localinfo.Size()
 			hr = cfapi.CfUpdatePlaceholder(handle, &placeholder.FsMetadata, placeholder.FileIdentity, placeholder.FileIdentityLength, &fileRange, 1, cfapi.CF_UPDATE_FLAG_CLEAR_IN_SYNC|cfapi.CF_UPDATE_FLAG_DEHYDRATE, nil, 0)
 			if hr != 0 {
-				return core.ErrorByCode(hr)
+				return core.ErrorByCodeWithContext("syncRemoteToLocal:CfUpdatePlaceholder", hr)
 			}
 			instance.NotifyFileState(localpath, core.FileSyncStateDirty)
 

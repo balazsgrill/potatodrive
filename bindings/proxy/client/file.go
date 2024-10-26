@@ -36,10 +36,7 @@ func (f *file) Read(p []byte) (n int, err error) {
 // ReadAt implements afero.File.
 func (f *file) ReadAt(p []byte, off int64) (n int, err error) {
 	data, err := f.fs.client.FreadAt(context.Background(), f.handle, int64(len(p)), off)
-	if err != nil {
-		return 0, err
-	}
-	return copy(p, data), nil
+	return copy(p, data), eurap("readat", err)
 }
 
 // Readdir implements afero.File.

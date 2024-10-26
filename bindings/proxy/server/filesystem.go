@@ -103,11 +103,11 @@ func wrapFileInfo(file os.FileInfo) *proxy.FileInfo {
 func (fs *FilesystemServer) Stat(ctx context.Context, name string) (_r *proxy.FileInfo, _err error) {
 	file, err := fs.fs.Stat(name)
 	if err != nil {
-		return nil, err
+		return nil, ewrap(err)
 	}
 	return wrapFileInfo(file), nil
 }
 
 func (fs *FilesystemServer) Chmod(ctx context.Context, name string, mode proxy.FileMode) error {
-	return fs.fs.Chmod(name, os.FileMode(mode))
+	return ewrap(fs.fs.Chmod(name, os.FileMode(mode)))
 }

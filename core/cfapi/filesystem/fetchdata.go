@@ -11,7 +11,7 @@ import (
 	"github.com/balazsgrill/potatodrive/core/cfapi"
 )
 
-const BUFFER_SIZE int64 = 1024 * 1024
+const BUFFER_SIZE int64 = 100 * 1024
 
 func (instance *VirtualizationInstance) callback_getFilePath(info *cfapi.CF_CALLBACK_INFO) string {
 	return core.GetString(info.VolumeDosName) + core.GetString(info.NormalizedPath)
@@ -101,7 +101,10 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	var n int
 	var count int64
 	for count < length {
-		n, err = file.ReadAt(tb.buffer[tb.count:], byteOffset+count)
+		instance.Logger.Debug().Msgf("Reading %d bytes", length-count)
+		// last read may be partial
+		n, err = file.ReadAt(tb.buffer[tb.count:min(BUFFER_SIZE, length-count)], byteOffset+count)
+		instance.Logger.Debug().Msgf("Received %d bytes (%v)", n, err)
 		count += int64(n)
 		tb.count += int64(n)
 		if err == io.EOF {

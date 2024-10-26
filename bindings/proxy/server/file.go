@@ -45,7 +45,7 @@ func (fs *FilesystemServer) FreadAt(ctx context.Context, file proxy.FileHandle, 
 	}
 	buffer := make([]byte, bufferSize)
 	n, err := f.ReadAt(buffer, offset)
-	return buffer[:n], err
+	return buffer[:n], ewrap(err)
 }
 
 // Freaddir implements proxy.Filesystem.

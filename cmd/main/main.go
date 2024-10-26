@@ -47,7 +47,7 @@ func main() {
 				Logger: icon.Logger,
 				StateCallback: func(state core.ConnectionState) {
 					if state.LastSyncError != nil {
-						icon.Logger.Err(err).Msgf("%s is offline %v", keyname, err)
+						icon.Logger.Err(state.LastSyncError).Msgf("%s is offline %v", keyname, state.LastSyncError)
 					}
 				},
 				FileStateCallback: func(fss core.FileSyncState) {

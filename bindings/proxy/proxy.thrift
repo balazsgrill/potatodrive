@@ -4,6 +4,8 @@ typedef i64 Timestamp
 
 exception FilesystemException {
     1: string message
+    2: bool isnotexists
+    3: bool eof
   }
 
 struct FileInfo {

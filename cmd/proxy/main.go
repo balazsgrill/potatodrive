@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/balazsgrill/potatodrive/bindings/proxy/server"
 )
 
@@ -34,6 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	log.Info().Str("version", Version).Msg("Starting PotatoDrive Proxy")
 	config := loadConfig(*configfile)
 
 	mux := http.NewServeMux()
@@ -43,6 +46,7 @@ func main() {
 			fmt.Printf("Error creating handler: %v\n", err)
 			os.Exit(1)
 		}
+		log.Info().Msgf("Serving %s on %s", c.Directory, pattern)
 		mux.HandleFunc(pattern, handler)
 	}
 
@@ -50,6 +54,7 @@ func main() {
 		Addr:    *addr,
 		Handler: mux,
 	}
+	log.Info().Msg("Listening on " + *addr)
 	httpserver.ListenAndServe()
 }
 

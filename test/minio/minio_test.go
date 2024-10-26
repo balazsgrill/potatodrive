@@ -124,7 +124,7 @@ func TestDownloadingLargeFile(t *testing.T) {
 	defer instance.Close()
 
 	// generate data and upload it
-	data := generateTestData(2*1024*1024, "2megabytesof2megabytes")
+	data := generateTestData(11*1024*1024, "11megabytesof2megabytes")
 	inputfile := filepath.Join(instance.tempdir, "inputfile.dat")
 	err := os.WriteFile(inputfile, data, 0644)
 	if err != nil {

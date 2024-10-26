@@ -97,5 +97,6 @@ func (f *filesystemClient) Rename(oldname string, newname string) error {
 
 // Stat implements afero.Fs.
 func (f *filesystemClient) Stat(name string) (fs.FileInfo, error) {
-	return f.client.Stat(context.Background(), name)
+	fi, err := f.client.Stat(context.Background(), name)
+	return fi, eurap("stat", err)
 }

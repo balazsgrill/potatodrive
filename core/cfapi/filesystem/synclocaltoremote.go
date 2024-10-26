@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -44,6 +45,8 @@ func (instance *VirtualizationInstance) isDeletedRemotely(remotepath string, loc
 }
 
 func (instance *VirtualizationInstance) syncLocalToRemote() error {
+	instance.lock.Lock()
+	defer instance.lock.Unlock()
 	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
 		instance.Logger.Debug().Msgf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
@@ -54,14 +57,14 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		}
 
 		path := instance.path_localToRemote(localpath)
+		if strings.HasPrefix(path, ".") {
+			return filepath.SkipDir
+		}
 		if localinfo.IsDir() {
 			if dir, err := afero.IsDir(instance.fs, path); dir {
 				return err
 			}
 			return instance.fs.MkdirAll(path, 0777)
-		}
-		if strings.HasPrefix(path, ".") {
-			return nil
 		}
 
 		localstate, err := getPlaceholderState(localpath)
@@ -79,7 +82,16 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			// local file is a hydrated placeholder, but not in sync, upload it if local is newer
 
 			remoteinfo, err := instance.fs.Stat(path)
-			localisnewer := os.IsNotExist(err) || (localinfo.ModTime().UTC().Unix() > remoteinfo.ModTime().UTC().Unix())
+			var localisnewer bool
+			if os.IsNotExist(err) {
+				localisnewer = false
+			} else if err != nil {
+				return fmt.Errorf("syncLocalToRemote.1 %w", err)
+			} else if remoteinfo == nil {
+				return fmt.Errorf("syncLocalToRemote.2 NPE")
+			} else {
+				localisnewer = (localinfo.ModTime().UTC().Unix() > remoteinfo.ModTime().UTC().Unix())
+			}
 
 			if localisnewer {
 				// TODO Add file to queue instead of doing it here
