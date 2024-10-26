@@ -101,10 +101,10 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	var n int
 	var count int64
 	for count < length {
-		instance.Logger.Debug().Msgf("Reading %d bytes", length-count)
+		//instance.Logger.Debug().Msgf("Reading %d bytes", length-count)
 		// last read may be partial
-		n, err = file.ReadAt(tb.buffer[tb.count:min(BUFFER_SIZE, length-count)], byteOffset+count)
-		instance.Logger.Debug().Msgf("Received %d bytes (%v)", n, err)
+		n, err = file.ReadAt(tb.buffer[tb.count:min(BUFFER_SIZE, tb.count+length-count)], byteOffset+count)
+		//instance.Logger.Debug().Msgf("Received %d bytes (%v)", n, err)
 		count += int64(n)
 		tb.count += int64(n)
 		if err == io.EOF {

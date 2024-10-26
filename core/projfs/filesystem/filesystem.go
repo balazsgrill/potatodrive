@@ -532,7 +532,7 @@ func (instance *VirtualizationInstance) GetFileData(callbackData *projfs.PRJ_CAL
 	var n int
 	var count uint32
 	for count < length {
-		n, err = file.ReadAt(buffer[count:min(len(buffer), int(length)-int(count))], int64(byteOffset+uint64(count)))
+		n, err = file.ReadAt(buffer[count:min(len(buffer), int(count)+int(length)-int(count))], int64(byteOffset+uint64(count)))
 		count += uint32(n)
 		if err == io.EOF {
 			err = nil
