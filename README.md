@@ -41,3 +41,10 @@ Configuration is stored in Windows Registry, see [example.reg](example/potatodri
 ## Running
 
 Once configured, just run the application. Logs are written to `%LOCALAPPDATA%\PotatoDrive`.
+
+## Acknowledgements
+
+This project could not have been possible without the following open source projects:
+* [afero](https://github.com/spf13/afero)
+* [walk](github.com/lxn/walk)
+* [winrt-go](github.com/saltosystems/winrt-go)
