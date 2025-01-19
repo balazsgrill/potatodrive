@@ -66,6 +66,10 @@ func (t *TaskListModel) TaskStateListener(state tasks.TaskState) {
 	}
 }
 
+func (t *TaskListModel) GetTaskState(index int) tasks.TaskState {
+	return t.items[index].(tasks.TaskState)
+}
+
 func (t *TaskListModel) RemoveItem(index int) {
 	section := t.currentSection(index)
 	if section >= 0 {
