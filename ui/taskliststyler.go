@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/balazsgrill/potatodrive/core"
 	"github.com/balazsgrill/potatodrive/core/tasks"
 	"github.com/lxn/walk"
@@ -117,7 +119,7 @@ func (s *TaskStyler) StyleItem(style *walk.ListItemStyle) {
 }
 
 func (s *TaskStyler) getStatusMessage(item tasks.TaskState) string {
-	return item.Name
+	return fmt.Sprintf("%s %d%%", item.Name, item.Progress)
 }
 
 func (s *TaskStyler) StampSize() walk.Size {

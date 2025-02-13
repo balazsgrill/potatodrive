@@ -72,8 +72,13 @@ func (t *TaskListModel) GetTaskState(index int) tasks.TaskState {
 
 func (t *TaskListModel) RemoveItem(index int) {
 	section := t.currentSection(index)
+	id := t.items[index].(tasks.TaskState).ID
+	for i := index + 1; i < len(t.items); i++ {
+		t.idtoindex[t.items[i].(tasks.TaskState).ID]--
+	}
+	delete(t.idtoindex, id)
+	t.OperationalListModelBase.RemoveItem(index)
 	if section >= 0 {
-		t.OperationalListModelBase.RemoveItem(index)
 		t.sectionsizes[section]--
 	}
 }
@@ -82,6 +87,10 @@ func (t *TaskListModel) InsertItemToSection(section int, item interface{}) {
 	index := t.endOfSection(section)
 	t.sectionsizes[section]++
 	t.InsertItem(index, item)
+	t.idtoindex[item.(tasks.TaskState).ID] = index
+	for i := index + 1; i < len(t.items); i++ {
+		t.idtoindex[t.items[i].(tasks.TaskState).ID]++
+	}
 }
 
 var _ walk.ListModel = (*TaskListModel)(nil)

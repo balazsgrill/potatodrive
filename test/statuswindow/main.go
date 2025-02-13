@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -28,14 +29,24 @@ func main() {
 
 	log := zerolog.New(output).With().Timestamp().Logger()
 	list := ui.NewTaskListModel()
-	list.TaskStateListener(tasks.TaskState{
-		ID: 1, Progress: 0,
-		Name: "name1"})
+
 	uicontext := &ui.UIContext{
 		Logger:  log,
 		Version: "Version",
 	}
 	ui.CreateTaskListWindow(uicontext, list)
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			id := rand.Int63n(10)
+			list.TaskStateListener(tasks.TaskState{
+				ID:       id,
+				Progress: rand.Intn(5) * 20,
+				Name:     "task " + fmt.Sprint(id),
+			})
+		}
+
+	}()
 	uicontext.MainWindow.Show()
 	uicontext.MainWindow.Run()
 }
