@@ -63,47 +63,51 @@ func (instance *VirtualizationInstance) syncRemoteToLocal() error {
 		}
 
 		insync := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_IN_SYNC) != 0
-		isaplacehoder := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_PLACEHOLDER) != 0
+		isaplaceholder := (placeholderstate & cfapi.CF_PLACEHOLDER_STATE_PLACEHOLDER) != 0
 
 		// check if remote is newer
 		localinfo, _ := os.Stat(localpath)
 		if localinfo.ModTime().UTC().Unix() < remoteinfo.ModTime().UTC().Unix() {
-			instance.Logger.Debug().Msgf("Updating local file '%s'", path)
-
-			var handle syscall.Handle
-			hr := cfapi.CfOpenFileWithOplock(core.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
-			if hr != 0 {
-				return core.ErrorByCodeWithContext("syncRemoteToLocal:CfOpenFileWithOplock", hr)
-			}
-			defer cfapi.CfCloseHandle(handle)
-			placeholder := getPlaceholder(remoteinfo)
-
-			if !isaplacehoder {
-				// setting in-sync state only works if it's a placeholder
-				instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
-				hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
-				if hr != 0 {
-					return core.ErrorByCodeWithContext("syncRemoteToLocal:CfConvertToPlaceholder", hr)
-				}
-			}
-			if !insync {
-				// updating a placeholder only works if it is marked as in-sync
-				hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
-				if hr != 0 {
-					return core.ErrorByCodeWithContext("syncRemoteToLocal:CfSetInSyncState", hr)
-				}
-			}
-			var fileRange cfapi.CF_FILE_RANGE
-			fileRange.StartingOffset = 0
-			fileRange.Length = localinfo.Size()
-			hr = cfapi.CfUpdatePlaceholder(handle, &placeholder.FsMetadata, placeholder.FileIdentity, placeholder.FileIdentityLength, &fileRange, 1, cfapi.CF_UPDATE_FLAG_CLEAR_IN_SYNC|cfapi.CF_UPDATE_FLAG_DEHYDRATE, nil, 0)
-			if hr != 0 {
-				return core.ErrorByCodeWithContext("syncRemoteToLocal:CfUpdatePlaceholder", hr)
-			}
-			instance.NotifyFileState(localpath, core.FileSyncStateDirty)
-
+			return instance.markFileAsDirty(path, localpath, remoteinfo, localinfo, insync, isaplaceholder)
 		}
 
 		return nil
 	})
+}
+
+func (instance *VirtualizationInstance) markFileAsDirty(path string, localpath string, remoteinfo fs.FileInfo, localinfo os.FileInfo, insync bool, isaplaceholder bool) error {
+	instance.Logger.Debug().Msgf("Updating local file '%s'", path)
+
+	var handle syscall.Handle
+	hr := cfapi.CfOpenFileWithOplock(core.GetPointer(localpath), cfapi.CF_OPEN_FILE_FLAG_WRITE_ACCESS|cfapi.CF_OPEN_FILE_FLAG_EXCLUSIVE, &handle)
+	if hr != 0 {
+		return core.ErrorByCodeWithContext("syncRemoteToLocal:CfOpenFileWithOplock", hr)
+	}
+	defer cfapi.CfCloseHandle(handle)
+	placeholder := getPlaceholder(remoteinfo)
+
+	if !isaplaceholder {
+		// setting in-sync state only works if it's a placeholder
+		instance.Logger.Info().Msgf("Converting to placeholder '%s'", path)
+		hr = cfapi.CfConvertToPlaceholder(handle, placeholder.FileIdentity, placeholder.FileIdentityLength, cfapi.CF_CONVERT_FLAG_NONE, 0, 0)
+		if hr != 0 {
+			return core.ErrorByCodeWithContext("syncRemoteToLocal:CfConvertToPlaceholder", hr)
+		}
+	}
+	if !insync {
+		// updating a placeholder only works if it is marked as in-sync
+		hr = cfapi.CfSetInSyncState(handle, cfapi.CF_IN_SYNC_STATE_IN_SYNC, cfapi.CF_SET_IN_SYNC_FLAG_NONE, nil)
+		if hr != 0 {
+			return core.ErrorByCodeWithContext("syncRemoteToLocal:CfSetInSyncState", hr)
+		}
+	}
+	var fileRange cfapi.CF_FILE_RANGE
+	fileRange.StartingOffset = 0
+	fileRange.Length = localinfo.Size()
+	hr = cfapi.CfUpdatePlaceholder(handle, &placeholder.FsMetadata, placeholder.FileIdentity, placeholder.FileIdentityLength, &fileRange, 1, cfapi.CF_UPDATE_FLAG_CLEAR_IN_SYNC|cfapi.CF_UPDATE_FLAG_DEHYDRATE, nil, 0)
+	if hr != 0 {
+		return core.ErrorByCodeWithContext("syncRemoteToLocal:CfUpdatePlaceholder", hr)
+	}
+	instance.FileSynchronizing(localpath)
+	return nil
 }

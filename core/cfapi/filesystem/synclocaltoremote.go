@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/balazsgrill/potatodrive/core"
 	"github.com/balazsgrill/potatodrive/core/cfapi"
 	"github.com/spf13/afero"
 )
@@ -44,8 +43,9 @@ func (instance *VirtualizationInstance) isDeletedRemotely(remotepath string, loc
 	return false, nil
 }
 
-func (instance *VirtualizationInstance) syncLocalToRemote() error {
-	return filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
+func (instance *VirtualizationInstance) syncLocalToRemote() ([]string, error) {
+	uploads := []string{}
+	return uploads, filepath.Walk(instance.rootPath, func(localpath string, localinfo fs.FileInfo, err error) error {
 		instance.Logger.Debug().Msgf("Syncing local file '%s'", localpath)
 		if os.IsNotExist(err) {
 			return nil
@@ -92,16 +92,7 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 			}
 
 			if localisnewer {
-				// TODO Add file to queue instead of doing it here
-				instance.NotifyFileState(localpath, core.FileSyncStateUploading)
-				instance.Logger.Info().Msgf("Updating remote file '%s'", path)
-				err = instance.streamLocalToRemote(path)
-				if err != nil {
-					instance.NotifyFileError(localpath, err)
-					return err
-				} else {
-					instance.NotifyFileState(localpath, core.FileSyncStateDone)
-				}
+				uploads = append(uploads, path)
 			}
 			// mark file as in-sync
 			return instance.setInSync(localpath)
@@ -110,10 +101,10 @@ func (instance *VirtualizationInstance) syncLocalToRemote() error {
 		if deleted {
 			err := os.Remove(localpath)
 			if err != nil {
-				instance.NotifyFileError(localpath, err)
+				instance.FileError(localpath, err)
 				return err
 			} else {
-				instance.NotifyFileState(localpath, core.FileSyncStateDeleted)
+				instance.FileRemoved(localpath)
 			}
 			return err
 		}

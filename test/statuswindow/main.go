@@ -38,7 +38,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			id := rand.Int63n(10)
+			id := uint64(rand.Int63n(10))
 			list.TaskStateListener(tasks.TaskState{
 				ID:       id,
 				Progress: rand.Intn(5) * 20,

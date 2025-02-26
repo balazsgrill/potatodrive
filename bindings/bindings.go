@@ -143,7 +143,7 @@ func (f closerFunc) Close() error {
 type InstanceContext struct {
 	Logger            zerolog.Logger
 	StateCallback     func(core.ConnectionState)
-	FileStateCallback func(core.FileSyncState)
+	FileStateCallback core.FileStateCallbacks
 }
 
 func (context InstanceContext) ConnectionStateChanged(id string, syninprogress bool, err error) {
@@ -179,7 +179,7 @@ func BindVirtualizationInstance(id string, config *BaseConfig, remotefs afero.Fs
 	if err != nil {
 		return nil, err
 	}
-	closer.SetFileStateHandler(context.FileStateCallback)
+	closer.SetStateCallbacks(context.FileStateCallback)
 
 	internalSynchronize := func() {
 		context.ConnectionStateChanged(id, true, nil)

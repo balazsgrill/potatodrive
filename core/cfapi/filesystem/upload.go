@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const MB int = 1024 * 1024
+
 func (instance *VirtualizationInstance) streamLocalToRemote(filename string) error {
 	localpath := instance.path_remoteToLocal(filename)
 	file, err := os.Open(localpath)
@@ -13,7 +15,7 @@ func (instance *VirtualizationInstance) streamLocalToRemote(filename string) err
 		return err
 	}
 	defer file.Close()
-	data := make([]byte, 1024*1024)
+	data := make([]byte, MB)
 	targetfile, err := instance.fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err

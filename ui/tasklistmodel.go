@@ -8,13 +8,13 @@ import (
 type TaskListModel struct {
 	OperationalListModelBase
 	sectionsizes []int
-	idtoindex    map[int64]int
+	idtoindex    map[uint64]int
 }
 
 func NewTaskListModel() *TaskListModel {
 	return &TaskListModel{
 		sectionsizes: []int{0, 0, 0}, // Done, IP, Pending
-		idtoindex:    make(map[int64]int),
+		idtoindex:    make(map[uint64]int),
 	}
 }
 

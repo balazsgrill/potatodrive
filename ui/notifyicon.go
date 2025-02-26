@@ -7,12 +7,14 @@ import (
 
 	"github.com/balazsgrill/potatodrive/assets"
 	"github.com/balazsgrill/potatodrive/core"
+	"github.com/leonelquinteros/gotext"
 	"github.com/lxn/walk"
 	"github.com/rs/zerolog"
 	"golang.org/x/sys/windows"
 )
 
 type UIContext struct {
+	*gotext.Po
 	Logger  zerolog.Logger
 	LogFile string
 	Version string

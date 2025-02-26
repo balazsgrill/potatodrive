@@ -4,7 +4,6 @@ import (
 	"log"
 	"syscall"
 
-	"github.com/balazsgrill/potatodrive/core"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/lxn/win"
@@ -19,7 +18,6 @@ func CreateTaskListWindow(context *UIContext, model *TaskListModel) {
 		dpi2StampSize:       make(map[int]walk.Size),
 		widthDPI2WsPerLine:  make(map[widthDPI]int),
 		textWidthDPI2Height: make(map[textWidthDPI]int),
-		stateicons:          make(map[core.FileSyncStateEnum]*walk.Icon),
 	}
 
 	//styler.loadIcons()

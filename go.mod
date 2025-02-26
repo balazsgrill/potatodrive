@@ -1,8 +1,8 @@
 module github.com/balazsgrill/potatodrive
 
-go 1.22.0
+go 1.23.5
 
-toolchain go1.23.0
+toolchain go1.23.6
 
 require (
 	github.com/apache/thrift v0.21.0
@@ -25,6 +25,7 @@ require (
 	github.com/integrii/flaggy v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect
+	github.com/leonelquinteros/gotext v1.7.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect

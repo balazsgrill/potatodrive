@@ -36,14 +36,16 @@ type VirtualizationInstance struct {
 	enumerations     map[syscall.GUID]*enumerationSession
 }
 
+// SetStateCallbacks implements core.Virtualization.
+func (instance *VirtualizationInstance) SetStateCallbacks(callbacks core.FileStateCallbacks) {
+}
+
 type enumerationSession struct {
 	searchstr uintptr
 	countget  int
 	sentcount int
 	wildcard  bool
 }
-
-func (*VirtualizationInstance) SetFileStateHandler(handler func(state core.FileSyncState)) {}
 
 func (instance *VirtualizationInstance) Close() error {
 	if instance._instanceHandle == 0 {

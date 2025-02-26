@@ -3,10 +3,26 @@ package ui
 import (
 	"fmt"
 
-	"github.com/balazsgrill/potatodrive/core"
 	"github.com/balazsgrill/potatodrive/core/tasks"
 	"github.com/lxn/walk"
 	"github.com/lxn/win"
+)
+
+type widthDPI struct {
+	width int // in native pixels
+	dpi   int
+}
+
+type textWidthDPI struct {
+	text  string
+	width int // in native pixels
+	dpi   int
+}
+
+const (
+	marginH96dpi int = 6
+	marginV96dpi int = 2
+	lineW96dpi   int = 1
 )
 
 type TaskStyler struct {
@@ -17,7 +33,6 @@ type TaskStyler struct {
 	dpi2StampSize       map[int]walk.Size
 	widthDPI2WsPerLine  map[widthDPI]int
 	textWidthDPI2Height map[textWidthDPI]int // in native pixels
-	stateicons          map[core.FileSyncStateEnum]*walk.Icon
 }
 
 func (s *TaskStyler) ItemHeightDependsOnWidth() bool {

@@ -19,12 +19,13 @@ func main() {
 	}
 
 	uicontext := &ui.UIContext{
+		Po:      ui.GetLocalization(),
 		Logger:  mgr.Logger,
 		LogFile: mgr.logfilepath,
 		Version: Version,
 	}
-	statuslist := ui.NewStatusList()
-	ui.CreateStatusWindow(uicontext, statuslist)
+	statuslist := ui.NewTaskListModel()
+	ui.CreateTaskListWindow(uicontext, statuslist)
 
 	icon := ui.CreateNotifyIcon(uicontext)
 	icon.Logger.Info().Str("version", Version).Msg("Starting PotatoDrive")
@@ -50,11 +51,7 @@ func main() {
 						icon.Logger.Err(state.LastSyncError).Msgf("%s is offline %v", keyname, state.LastSyncError)
 					}
 				},
-				FileStateCallback: func(fss core.FileSyncState) {
-					go uicontext.MainWindow.Synchronize(func() {
-						statuslist.AddState(fss)
-					})
-				},
+				FileStateCallback: core.AsCallbacks(statuslist.TaskStateListener),
 			}
 			err := mgr.StartInstance(keyname, context)
 			if err != nil {

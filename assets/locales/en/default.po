@@ -1,0 +1,8 @@
+msgid "About PotatoDrive"
+msgstr "About PotatoDrive"
+
+msgid "License"
+msgstr "License: <a id=\"this\" href=\"https://github.com/balazsgrill/potatodrive?tab=MIT-1-ov-file#readme\">MIT</a>"
+
+msgid "Homepage"
+msgstr "<a id=\"this\" href=\"https://github.com/balazsgrill/potatodrive\">https://github.com/balazsgrill/potatodrive</a>""

@@ -18,7 +18,7 @@ func openlink(link *walk.LinkLabelLink) {
 
 func aboutDialog(_ walk.Form, context *UIContext) (int, error) {
 	return MainWindow{
-		Title:   "About PotatoDrive",
+		Title:   context.Get("About PotatoDrive"),
 		Icon:    "#2\\0409",
 		MinSize: Size{300, 200},
 		Size:    Size{300, 200},
@@ -31,12 +31,12 @@ func aboutDialog(_ walk.Form, context *UIContext) (int, error) {
 			},
 			LinkLabel{
 				Alignment:       AlignHCenterVCenter,
-				Text:            `License: <a id="this" href="https://github.com/balazsgrill/potatodrive?tab=MIT-1-ov-file#readme">MIT</a>`,
+				Text:            context.Get("License"),
 				OnLinkActivated: openlink,
 			},
 			LinkLabel{
 				Alignment:       AlignHCenterVCenter,
-				Text:            `<a id="this" href="https://github.com/balazsgrill/potatodrive">https://github.com/balazsgrill/potatodrive</a>`,
+				Text:            context.Get("Homepage"),
 				OnLinkActivated: openlink,
 			},
 		},

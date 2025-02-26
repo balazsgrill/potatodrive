@@ -32,11 +32,12 @@ type VirtualizationInstance struct {
 	connectionKey cfapi.CF_CONNECTION_KEY
 	lock          sync.Mutex
 	watcher       *fsnotify.Watcher
-	handler       func(state core.FileSyncState)
+	callbacks     core.FileStateCallbacks
 }
 
-func (instance *VirtualizationInstance) SetFileStateHandler(handler func(state core.FileSyncState)) {
-	instance.handler = handler
+// SetStateCallbacks implements core.Virtualization.
+func (instance *VirtualizationInstance) SetStateCallbacks(callbacks core.FileStateCallbacks) {
+	instance.callbacks = callbacks
 }
 
 func StartProjecting(rootPath string, filesystem afero.Fs, logger zerolog.Logger) (core.Virtualization, error) {
@@ -158,7 +159,20 @@ func (instance *VirtualizationInstance) PerformSynchronization() error {
 	if err != nil {
 		return err
 	}
-	return instance.syncLocalToRemote()
+	uploads, err := instance.syncLocalToRemote()
+	for _, path := range uploads {
+		localpath := instance.path_remoteToLocal(path)
+		instance.FileUploading(localpath, 0)
+		instance.Logger.Info().Msgf("Updating remote file '%s'", path)
+		err = instance.streamLocalToRemote(path)
+		if err != nil {
+			instance.FileError(localpath, err)
+			return err
+		} else {
+			instance.FileDone(localpath)
+		}
+	}
+	return err
 }
 
 func (instance *VirtualizationInstance) setInSync(localpath string) error {

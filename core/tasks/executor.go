@@ -1,9 +1,14 @@
 package tasks
 
+type TaskConsumer interface {
+	AddTask(task Task)
+}
+
 type TaskExecutor struct {
 	tasks    chan Task
 	cancel   chan bool
 	listener TaskStateListener
+	idcount  uint64
 }
 
 func NewTaskExecutor(listener TaskStateListener) *TaskExecutor {
@@ -18,7 +23,8 @@ func NewTaskExecutor(listener TaskStateListener) *TaskExecutor {
 // May be blocking if task queue is full
 func (e *TaskExecutor) AddTask(task Task) {
 	// TODO check if executor is still running
-	state := task.Init()
+	state := task.Init(e.idcount)
+	e.idcount++
 	e.tasks <- task
 	e.listener(state)
 }

@@ -56,7 +56,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	instance.lock.Lock()
 	defer instance.lock.Unlock()
 	localpath := instance.callback_getFilePath(info)
-	instance.NotifyFileState(localpath, core.FileSyncStateDownloading)
+	instance.FileDownloading(localpath, 0)
 
 	filename := instance.path_localToRemote(localpath)
 	length := data.RequiredLength
@@ -64,7 +64,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	remoteinfo, err := instance.fs.Stat(filename)
 	if err != nil {
 		instance.Logger.Error().Msgf("Remote file is inaccessible %s: %s", filename, err)
-		instance.NotifyFileError(localpath, err)
+		instance.FileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	if length == 0 || length < 0 {
@@ -86,7 +86,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 	file, err := instance.fs.Open(filename)
 	if err != nil {
 		instance.Logger.Error().Msgf("Error opening file %s: %s", filename, err)
-		instance.NotifyFileError(localpath, err)
+		instance.FileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	defer file.Close()
@@ -116,16 +116,17 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 			err = tb.send(updatehash)
 			if err != nil {
 				instance.Logger.Error().Msgf("Error computing file hash %s: %s", filename, err)
-				instance.NotifyFileError(localpath, err)
+				instance.FileError(localpath, err)
 				return uintptr(syscall.EIO)
 			}
+			instance.FileDownloading(localpath, int(100*(float32(count)/float32(length))))
 		}
 	}
 	err = tb.send(updatehash)
 	instance.Logger.Debug().Msgf("Read %d bytes", count)
 	if err != nil {
 		instance.Logger.Error().Msgf("Error reading file %s: %s", filename, err)
-		instance.NotifyFileError(localpath, err)
+		instance.FileError(localpath, err)
 		return uintptr(syscall.EIO)
 	}
 	if updatehash != nil {
@@ -134,7 +135,7 @@ func (instance *VirtualizationInstance) fetchData(info *cfapi.CF_CALLBACK_INFO, 
 			instance.Logger.Warn().Msgf("Error updating state cache %s: %s", filename, err)
 		}
 	}
-	instance.NotifyFileState(localpath, core.FileSyncStateDone)
+	instance.FileDone(localpath)
 
 	return 0
 }
