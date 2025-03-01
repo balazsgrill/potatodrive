@@ -15,11 +15,11 @@ func GetLocalization() *gotext.Po {
 
 func loadPO(locale string) *gotext.Po {
 	po := gotext.NewPoFS(assets.Locales)
-	_, err := assets.Locales.ReadDir(locale)
+	_, err := assets.Locales.ReadDir("locales/" + locale)
 	if err != nil {
 		locale = "en"
 	}
-	po.ParseFile(locale + "/default.po")
+	po.ParseFile("locales/" + locale + "/default.po")
 	return po
 }
 
