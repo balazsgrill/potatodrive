@@ -9,7 +9,6 @@ import (
 	"github.com/balazsgrill/potatodrive/bindings"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sys/windows/registry"
 )
 
 type Manager struct {
@@ -17,10 +16,8 @@ type Manager struct {
 	logf        io.Closer
 	logfilepath string
 
-	parentkey registry.Key
-
-	keylist   []string
-	instances map[string]io.Closer
+	configProvider bindings.ConfigProvider
+	instances      map[string]io.Closer
 }
 
 func initLogger() (string, zerolog.Logger, io.Closer) {
@@ -43,44 +40,21 @@ func initLogger() (string, zerolog.Logger, io.Closer) {
 	return logfilepath, log.Output(zerolog.MultiLevelWriter(logf, zerolog.NewConsoleWriter())).With().Timestamp().Logger(), logf
 }
 
-func startInstance(parentkey registry.Key, keyname string, context bindings.InstanceContext) (io.Closer, error) {
-	key, err := registry.OpenKey(parentkey, keyname, registry.QUERY_VALUE)
-	if err != nil {
-		context.Logger.Error().Msgf("Open key: %v", err)
-		return nil, err
-	}
-
-	var basec bindings.BaseConfig
-	err = bindings.ReadConfigFromRegistry(key, &basec)
-	if err != nil {
-		context.Logger.Error().Msgf("Get base config: %v", err)
-		return nil, err
-	}
-	config := bindings.CreateConfigByType(basec.Type)
-	err = bindings.ReadConfigFromRegistry(key, config)
-	if err != nil {
-		context.Logger.Error().Msgf("Read config: %v", err)
-		return nil, err
-	}
-	err = config.Validate()
-	if err != nil {
-		context.Logger.Error().Msgf("Validate config: %v", err)
-		return nil, err
-	}
+func startInstance(config bindings.Config, context bindings.InstanceContext) (io.Closer, error) {
 	fs, err := config.ToFileSystem(context.Logger)
 	if err != nil {
 		context.Logger.Error().Msgf("Create file system: %v", err)
 		return nil, err
 	}
 
-	context.Logger.Info().Msgf("Starting %s on %s", keyname, basec.LocalPath)
+	context.Logger.Info().Msgf("Starting %s on %s", config.ID, config.LocalPath)
 	innercontext := context
-	innercontext.Logger = context.Logger.With().Str("instance", keyname).Logger()
-	c, err := bindings.BindVirtualizationInstance(keyname, &basec, fs, innercontext)
+	innercontext.Logger = context.Logger.With().Str("instance", config.ID).Logger()
+	c, err := bindings.BindVirtualizationInstance(config.ID, &config.BaseConfig, fs, innercontext)
 	if err != nil {
 		return nil, err
 	}
-	context.Logger.Info().Msgf("%s started", keyname)
+	context.Logger.Info().Msgf("%s started", config.ID)
 	return c, nil
 }
 
@@ -89,16 +63,7 @@ func New() (*Manager, error) {
 		instances: make(map[string]io.Closer),
 	}
 	m.logfilepath, m.Logger, m.logf = initLogger()
-	var err error
-	m.parentkey, err = registry.OpenKey(registry.LOCAL_MACHINE, "SOFTWARE\\PotatoDrive", registry.QUERY_VALUE|registry.READ)
-	if err != nil {
-		return nil, err
-	}
-
-	m.keylist, err = m.parentkey.ReadSubKeyNames(0)
-	if err != nil {
-		return nil, err
-	}
+	m.configProvider = bindings.NewRegistryConfigProvider(m.Logger, "SOFTWARE\\PotatoDrive")
 	return m, nil
 }
 
@@ -114,11 +79,15 @@ func (m *Manager) Close() error {
 }
 
 func (m *Manager) InstanceList() ([]string, error) {
-	return m.keylist, nil
+	return m.configProvider.Keys(), nil
 }
 
 func (m *Manager) StartInstance(id string, context bindings.InstanceContext) error {
-	instance, err := startInstance(m.parentkey, id, context)
+	config, err := m.configProvider.ReadConfig(id)
+	if err != nil {
+		return err
+	}
+	instance, err := startInstance(config, context)
 	if err != nil {
 		return err
 	}

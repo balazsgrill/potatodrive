@@ -20,7 +20,6 @@ import (
 	cfapi "github.com/balazsgrill/potatodrive/core/cfapi/filesystem"
 	prjfs "github.com/balazsgrill/potatodrive/core/projfs/filesystem"
 	"github.com/spf13/afero"
-	"golang.org/x/sys/windows/registry"
 )
 
 const UseCFAPI bool = true
@@ -80,45 +79,6 @@ func CreateConfigByType(typestr string) BindingConfig {
 		return &sftp.Config{}
 	case "afero-http":
 		return &client.Config{}
-	}
-	return nil
-}
-
-func ReadConfigFromRegistry(key registry.Key, config any) error {
-	structPtrValue := reflect.ValueOf(config)
-	structValue := structPtrValue.Elem()
-	structType := structValue.Type()
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
-		fieldvalue := structValue.Field(i)
-		tag := field.Tag.Get("reg")
-		if tag != "" {
-			switch field.Type.Kind() {
-			case reflect.String:
-				value, _, err := key.GetStringValue(tag)
-				if os.IsNotExist(err) {
-					continue
-				}
-				if err == registry.ErrUnexpectedType {
-					// attempt to read as multi-string
-					values, _, err := key.GetStringsValue(tag)
-					if err != nil {
-						return err
-					}
-					value = strings.Join(values, "\n")
-				}
-				fieldvalue.SetString(value)
-			case reflect.Bool:
-				value, _, err := key.GetIntegerValue(tag)
-				if os.IsNotExist(err) {
-					continue
-				}
-				if err != nil {
-					return err
-				}
-				fieldvalue.SetBool(value != 0)
-			}
-		}
 	}
 	return nil
 }
@@ -192,11 +152,9 @@ func BindVirtualizationInstance(id string, config *BaseConfig, remotefs afero.Fs
 		}
 	}
 
-	// initial sync
-	internalSynchronize()
-
 	t := time.NewTicker(30 * time.Second)
 	go func() {
+		internalSynchronize()
 		for range t.C {
 			internalSynchronize()
 		}

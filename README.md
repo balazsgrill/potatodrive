@@ -48,3 +48,10 @@ This project could not have been possible without the following open source proj
 * [afero](https://github.com/spf13/afero)
 * [walk](github.com/lxn/walk)
 * [winrt-go](github.com/saltosystems/winrt-go)
+
+### Art atributions
+
+The following arts are being used in the project:
+
+* [Bucket icons created by Smashicons](https://www.flaticon.com/free-icon/bucket_1676699)
+* [Sftp icons created by Freepik](https://www.flaticon.com/free-icon/sftp_8110738)

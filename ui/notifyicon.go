@@ -93,7 +93,6 @@ func CreateNotifyIcon(context *UIContext) *NotifyIcon {
 		logger.Fatal().Err(err).Send()
 	}
 
-	// We load our icon from a file.
 	ui.icon, err = walk.NewIconFromBitmap(iconbt)
 	if err != nil {
 		logger.Fatal().Err(err).Send()
