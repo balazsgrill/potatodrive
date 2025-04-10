@@ -16,3 +16,6 @@ var Icons embed.FS
 
 const IconBucket = "icons/bucket.png"
 const IconSFTP = "icons/sftp.png"
+const IconGPhotos = "icons/gphotos.png"
+const IconDelete = "icons/delete.png"
+const IconRefresh = "icons/refresh.png"

@@ -1,6 +1,7 @@
 package bindings
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -34,7 +35,7 @@ func (r *registryConfigProvider) DeleteConfig(key string) error {
 // WriteConfig implements ConfigWriter.
 func (r *registryConfigProvider) WriteConfig(config Config) error {
 	keyname := config.ID
-	parentkey, err := registry.OpenKey(registry.LOCAL_MACHINE, r.basekey, registry.QUERY_VALUE|registry.READ)
+	parentkey, err := registry.OpenKey(registry.LOCAL_MACHINE, r.basekey, registry.QUERY_VALUE|registry.READ|registry.WRITE|registry.CREATE_SUB_KEY)
 	if err != nil {
 		r.logger.Err(err).Msgf("Open key: %s", r.basekey)
 		return err
@@ -47,11 +48,11 @@ func (r *registryConfigProvider) WriteConfig(config Config) error {
 	}
 	defer key.Close()
 
-	err = writeConfigToRegistry(key, config.BaseConfig)
+	err = writeConfigToRegistry(key, &config.BaseConfig)
 	if err != nil {
 		return err
 	}
-	return writeConfigToRegistry(key, config.BindingConfig)
+	return writeConfigToRegistry(key, &config.BindingConfig)
 }
 
 // Keys implements ConfigProvider.
@@ -95,11 +96,16 @@ func (r *registryConfigProvider) ReadConfig(keyname string) (Config, error) {
 		return result, err
 	}
 	config := CreateConfigByType(result.Type)
-	err = ReadConfigFromRegistry(key, &result.BaseConfig)
+	if config == nil {
+		r.logger.Err(err).Msgf("Create config by type: %s", result.Type)
+		return result, err
+	}
+	err = ReadConfigFromRegistry(key, config)
 	if err != nil {
 		r.logger.Err(err).Msgf("Read config: %v", err)
 		return result, err
 	}
+	result.BindingConfig = config
 	err = config.Validate()
 	if err != nil {
 		r.logger.Err(err).Msgf("Validate config: %v", err)
@@ -117,10 +123,16 @@ func NewRegistryConfigWriter(logger zerolog.Logger, basekey string) ConfigWriter
 }
 
 func writeConfigToRegistry(key registry.Key, config any) error {
+	// Ensure config is a pointer to a struct
 	structPtrValue := reflect.ValueOf(config)
+	if structPtrValue.Kind() != reflect.Ptr || structPtrValue.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("writeConfigToRegistry: expected pointer to struct, got %T", config)
+	}
+
 	structValue := structPtrValue.Elem()
 	structType := structValue.Type()
-	for i := range structType.NumField() {
+
+	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		fieldValue := structValue.Field(i)
 		tag := field.Tag.Get("reg")
@@ -142,6 +154,8 @@ func writeConfigToRegistry(key registry.Key, config any) error {
 				if err != nil {
 					return err
 				}
+			default:
+				return fmt.Errorf("writeConfigToRegistry: unsupported field type %s", field.Type.Kind())
 			}
 		}
 	}
@@ -149,12 +163,18 @@ func writeConfigToRegistry(key registry.Key, config any) error {
 }
 
 func ReadConfigFromRegistry(key registry.Key, config any) error {
+	// Ensure config is a pointer to a struct
 	structPtrValue := reflect.ValueOf(config)
+	if structPtrValue.Kind() != reflect.Ptr || structPtrValue.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("ReadConfigFromRegistry: expected pointer to struct, got %T", config)
+	}
+
 	structValue := structPtrValue.Elem()
 	structType := structValue.Type()
-	for i := range structType.NumField() {
+
+	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-		fieldvalue := structValue.Field(i)
+		fieldValue := structValue.Field(i)
 		tag := field.Tag.Get("reg")
 		if tag != "" {
 			switch field.Type.Kind() {
@@ -164,14 +184,14 @@ func ReadConfigFromRegistry(key registry.Key, config any) error {
 					continue
 				}
 				if err == registry.ErrUnexpectedType {
-					// attempt to read as multi-string
+					// Attempt to read as multi-string
 					values, _, err := key.GetStringsValue(tag)
 					if err != nil {
 						return err
 					}
 					value = strings.Join(values, "\n")
 				}
-				fieldvalue.SetString(value)
+				fieldValue.SetString(value)
 			case reflect.Bool:
 				value, _, err := key.GetIntegerValue(tag)
 				if os.IsNotExist(err) {
@@ -180,7 +200,9 @@ func ReadConfigFromRegistry(key registry.Key, config any) error {
 				if err != nil {
 					return err
 				}
-				fieldvalue.SetBool(value != 0)
+				fieldValue.SetBool(value != 0)
+			default:
+				return fmt.Errorf("ReadConfigFromRegistry: unsupported field type %s", field.Type.Kind())
 			}
 		}
 	}

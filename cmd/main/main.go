@@ -12,18 +12,14 @@ var Version string = "0.0.0-dev"
 
 func main() {
 
-	mgr, err := New()
+	uicontext := ui.NewUIContext(Version)
+
+	mgr, err := New(uicontext)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
-	uicontext := &ui.UIContext{
-		Po:      ui.GetLocalization(),
-		Logger:  mgr.Logger,
-		LogFile: mgr.logfilepath,
-		Version: Version,
-	}
 	statuslist := ui.NewTaskListModel()
 	ui.CreateTaskListWindow(uicontext, statuslist)
 

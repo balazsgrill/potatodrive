@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
+	"github.com/balazsgrill/potatodrive/bindings/gphotos"
 	"github.com/balazsgrill/potatodrive/bindings/proxy/client"
 	"github.com/balazsgrill/potatodrive/bindings/s3"
 	"github.com/balazsgrill/potatodrive/bindings/sftp"
@@ -33,6 +34,11 @@ const (
 	APIType_CFAPI           = "cfapi"
 	APIType_PRJFS           = "prjfs"
 	APIType_CFAPI_Simplfied = "cfapi-simplified"
+
+	TYPE_S3      = "afero-s3"
+	TYPE_SFTP    = "afero-sftp"
+	TYPE_HTTP    = "afero-http"
+	TYPE_GPHOTOS = "afero-gphotos"
 )
 
 type BaseConfig struct {
@@ -73,12 +79,14 @@ func ConfigToFlags(config any) {
 
 func CreateConfigByType(typestr string) BindingConfig {
 	switch typestr {
-	case "afero-s3":
+	case TYPE_S3:
 		return &s3.Config{}
-	case "afero-sftp":
+	case TYPE_SFTP:
 		return &sftp.Config{}
-	case "afero-http":
+	case TYPE_HTTP:
 		return &client.Config{}
+	case TYPE_GPHOTOS:
+		return &gphotos.Config{}
 	}
 	return nil
 }

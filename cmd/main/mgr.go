@@ -3,41 +3,18 @@ package main
 import (
 	"errors"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/balazsgrill/potatodrive/bindings"
+	"github.com/balazsgrill/potatodrive/ui"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type Manager struct {
 	zerolog.Logger
-	logf        io.Closer
-	logfilepath string
+	ui *ui.UIContext
 
 	configProvider bindings.ConfigProvider
 	instances      map[string]io.Closer
-}
-
-func initLogger() (string, zerolog.Logger, io.Closer) {
-	cachedir, err := os.UserCacheDir()
-	if err != nil {
-		panic(err)
-	}
-	logfolder := filepath.Join(cachedir, "PotatoDrive")
-	err = os.MkdirAll(logfolder, 0777)
-	if err != nil {
-		panic(err)
-	}
-
-	logfile := "potatodrive.log"
-	logfilepath := filepath.Join(logfolder, logfile)
-	logf, err := os.OpenFile(logfilepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		panic(err)
-	}
-	return logfilepath, log.Output(zerolog.MultiLevelWriter(logf, zerolog.NewConsoleWriter())).With().Timestamp().Logger(), logf
 }
 
 func startInstance(config bindings.Config, context bindings.InstanceContext) (io.Closer, error) {
@@ -58,11 +35,12 @@ func startInstance(config bindings.Config, context bindings.InstanceContext) (io
 	return c, nil
 }
 
-func New() (*Manager, error) {
+func New(ui *ui.UIContext) (*Manager, error) {
 	m := &Manager{
 		instances: make(map[string]io.Closer),
 	}
-	m.logfilepath, m.Logger, m.logf = initLogger()
+	m.ui = ui
+	m.Logger = ui.Logger
 	m.configProvider = bindings.NewRegistryConfigProvider(m.Logger, "SOFTWARE\\PotatoDrive")
 	return m, nil
 }
@@ -75,7 +53,7 @@ func (m *Manager) Close() error {
 			m.Logger.Err(err).Msg("Failed to close instance")
 		}
 	}
-	return m.logf.Close()
+	return m.ui.Close()
 }
 
 func (m *Manager) InstanceList() ([]string, error) {
