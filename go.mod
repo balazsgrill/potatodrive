@@ -42,3 +42,5 @@ require (
 )
 
 replace github.com/saltosystems/winrt-go => ./winrt-go
+
+replace github.com/gphotosuploader/google-photos-api-client-go/v3 => github.com/balazsgrill/google-photos-api-client-go/v3 v3.1.0

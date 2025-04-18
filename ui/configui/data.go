@@ -18,7 +18,16 @@ type ConfigValues struct {
 	HasGPhotos    bool
 	GPhotosConfig gphotos.Config
 
-	NotHasValue bool
+	//derived values
+	NotHasValue        bool
+	GPhotosHasToken    bool
+	NotGPhotosHasToken bool
+}
+
+func (values *ConfigValues) updateDerivedValues() {
+	values.NotHasValue = !values.HasValue
+	values.GPhotosHasToken = values.HasGPhotos && values.GPhotosConfig.TokenJson != ""
+	values.NotGPhotosHasToken = !values.GPhotosHasToken
 }
 
 func ReadFrom(data *bindings.Config) *ConfigValues {
@@ -46,6 +55,7 @@ func ReadFrom(data *bindings.Config) *ConfigValues {
 		result.HasGPhotos = true
 		result.GPhotosConfig = *gphotos
 	}
+	result.updateDerivedValues()
 	return result
 }
 

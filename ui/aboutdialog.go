@@ -2,15 +2,15 @@ package ui
 
 import (
 	"fmt"
-	"os/exec"
 
+	"github.com/balazsgrill/potatodrive/core"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"github.com/rs/zerolog/log"
 )
 
 func openlink(link *walk.LinkLabelLink) {
-	err := exec.Command("rundll32", "url.dll,FileProtocolHandler", link.URL()).Start()
+	err := core.OpenURL(link.URL())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to open url")
 	}

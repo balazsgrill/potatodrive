@@ -8,6 +8,9 @@ import (
 //go:embed potato.png
 var PotatoPng []byte
 
+//go:embed success.html
+var AuthSuccessHtml []byte
+
 //go:embed locales/*
 var Locales embed.FS
 

@@ -2,9 +2,9 @@ package gphotos
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/balazsgrill/potatodrive/gpfs"
-	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v3"
 	"github.com/rs/zerolog"
 	"github.com/spf13/afero"
 	"golang.org/x/oauth2"
@@ -12,9 +12,45 @@ import (
 )
 
 type Config struct {
-	ClientID     string `json:"client_id" flag:"client-id" reg:"client_id"`
-	ClientSecret string `json:"client_secret" flag:"client-secret" reg:"client_secret"`
-	RedirectURL  string `json:"redirect_url" flag:"redirect-url" reg:"redirect_url"`
+	ClientID     string `json:"client_id" flag:"client-id" reg:"ClientID"`
+	ClientSecret string `json:"client_secret" flag:"client-secret" reg:"ClientSecret"`
+	RedirectURL  string `json:"redirect_url" flag:"redirect-url" reg:"RedirectURL"`
+	TokenJson    string `json:"token_json" flag:"token-json" reg:"TokenJson"`
+}
+
+type TokenPersistence interface {
+	// SaveToken saves the token to a file.
+	SaveToken(token *oauth2.Token) error
+	// LoadToken loads the token from a file.
+	LoadToken() (*oauth2.Token, error)
+}
+
+func (c *Config) Authenticate(ctx context.Context, starturl func(string)) error {
+	token, err := gpfs.Authenticate(ctx, c.ClientID, c.ClientSecret, c.RedirectURL, starturl)
+	if err != nil {
+		return err
+	}
+	if err := c.SaveToken(token); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Config) SaveToken(token *oauth2.Token) error {
+	tokenJson, err := json.Marshal(token)
+	if err != nil {
+		return err
+	}
+	c.TokenJson = string(tokenJson)
+	return nil
+}
+
+func (c *Config) LoadToken() (*oauth2.Token, error) {
+	var token oauth2.Token
+	if err := json.Unmarshal([]byte(c.TokenJson), &token); err != nil {
+		return nil, err
+	}
+	return &token, nil
 }
 
 // ToFileSystem implements bindings.BindingConfig.
@@ -26,12 +62,13 @@ func (c *Config) ToFileSystem(zerolog.Logger) (afero.Fs, error) {
 		Scopes:       []string{"https://www.googleapis.com/auth/photoslibrary.readonly"},
 		Endpoint:     google.Endpoint,
 	}
-	httpclient := oauthconfig.Client(context.Background(), &oauth2.Token{})
-	gpclient, err := gphotos.NewClient(httpclient)
+	token, err := c.LoadToken()
 	if err != nil {
 		return nil, err
 	}
-	return gpfs.NewFs(gpclient), nil
+	httpclient := oauthconfig.Client(context.Background(), token)
+	// TODO persist token when updated by the client
+	return gpfs.NewFs(httpclient)
 }
 
 // Validate implements bindings.BindingConfig.

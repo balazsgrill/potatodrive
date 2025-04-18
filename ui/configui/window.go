@@ -11,9 +11,14 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
+type configUI struct {
+	mw *walk.MainWindow
+}
+
 func Create(uicontext *ui.UIContext, configProvider bindings.ConfigWriter) MainWindow {
 	var listBox *walk.ListBox
 	var db *walk.DataBinder
+	cui := &configUI{}
 	// Read registry values
 	items := configProvider.Keys()
 	refresh := func() {
@@ -21,9 +26,10 @@ func Create(uicontext *ui.UIContext, configProvider bindings.ConfigWriter) MainW
 		listBox.SetModel(items)
 	}
 	return MainWindow{
-		Title:   "PotatoDrive configuration",
-		MinSize: Size{600, 400},
-		Layout:  VBox{},
+		AssignTo: &cui.mw,
+		Title:    "PotatoDrive configuration",
+		MinSize:  Size{600, 400},
+		Layout:   VBox{},
 		ToolBar: ToolBar{
 			ButtonStyle: ToolBarButtonImageAboveText,
 			Items: []MenuItem{
@@ -127,7 +133,7 @@ func Create(uicontext *ui.UIContext, configProvider bindings.ConfigWriter) MainW
 							listBox.Parent().RequestLayout()
 						},
 					},
-					ConfigPanel(&db, configProvider),
+					cui.configPanel(&db, configProvider),
 				},
 			},
 		},

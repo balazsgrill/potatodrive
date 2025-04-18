@@ -109,6 +109,9 @@ func toBasicInfo(file fs.FileInfo) cfapi.FILE_BASIC_INFO {
 	} else {
 		attributes |= syscall.FILE_ATTRIBUTE_NORMAL
 	}
+	if file.Mode().Perm()&0200 == 0 {
+		attributes |= syscall.FILE_ATTRIBUTE_READONLY
+	}
 	return cfapi.FILE_BASIC_INFO{
 		CreationTime:   ftime,
 		LastAccessTime: ftime,

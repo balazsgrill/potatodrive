@@ -4,11 +4,12 @@ import (
 	"log"
 
 	"github.com/balazsgrill/potatodrive/bindings"
+	"github.com/balazsgrill/potatodrive/bindings/gphotos"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 )
 
-func ConfigPanel(databinder **walk.DataBinder, configProvider bindings.ConfigWriter) Widget {
+func (cc *configUI) configPanel(databinder **walk.DataBinder, configProvider bindings.ConfigWriter) Widget {
 	return Composite{
 		Layout: VBox{},
 		DataBinder: DataBinder{
@@ -19,6 +20,7 @@ func ConfigPanel(databinder **walk.DataBinder, configProvider bindings.ConfigWri
 			},
 			OnSubmitted: func() {
 				configvalues := (*databinder).DataSource().(*ConfigValues)
+				configvalues.updateDerivedValues()
 				value := WriteTo(configvalues)
 				if value != nil {
 					configProvider.WriteConfig(*value)
@@ -103,11 +105,26 @@ func ConfigPanel(databinder **walk.DataBinder, configProvider bindings.ConfigWri
 				Layout:  Grid{Columns: 2},
 				Children: []Widget{
 					Label{Text: "ClientId:"},
-					LineEdit{Text: Bind("GPhotosConfig.ClientId")},
+					LineEdit{Text: Bind("GPhotosConfig.ClientID")},
 					Label{Text: "ClientSecret:"},
 					LineEdit{Text: Bind("GPhotosConfig.ClientSecret")},
 					Label{Text: "RedirectURL:"},
 					LineEdit{Text: Bind("GPhotosConfig.RedirectURL")},
+					Label{Text: "Authentication Token:"},
+					Label{Text: "Valid", Visible: Bind("GPhotosHasToken")},
+					Label{Text: "Invalid", Visible: Bind("NotGPhotosHasToken")},
+					PushButton{
+						Text: "Authenticate",
+						OnClicked: func() {
+							configvalues := (*databinder).DataSource().(*ConfigValues)
+							value := WriteTo(configvalues)
+							if err := auth(cc.mw, value.BindingConfig.(*gphotos.Config)); err != nil {
+								log.Printf("Failed to authenticate: %v", err)
+								return
+							}
+							(*databinder).Reset()
+						},
+					},
 				},
 			},
 		},

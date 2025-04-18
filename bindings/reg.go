@@ -122,14 +122,18 @@ func NewRegistryConfigWriter(logger zerolog.Logger, basekey string) ConfigWriter
 	return &registryConfigProvider{logger: logger, basekey: basekey}
 }
 
-func writeConfigToRegistry(key registry.Key, config any) error {
-	// Ensure config is a pointer to a struct
-	structPtrValue := reflect.ValueOf(config)
-	if structPtrValue.Kind() != reflect.Ptr || structPtrValue.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("writeConfigToRegistry: expected pointer to struct, got %T", config)
+func writeValueToRegistry(key registry.Key, structValue reflect.Value) error {
+	if structValue.Kind() == reflect.Ptr || structValue.Kind() == reflect.Interface {
+		if structValue.IsNil() {
+			return nil
+		}
+		return writeValueToRegistry(key, structValue.Elem())
 	}
 
-	structValue := structPtrValue.Elem()
+	if structValue.Kind() != reflect.Struct {
+		return fmt.Errorf("writeValueToRegistry: expected struct, got %s", structValue.Kind())
+	}
+
 	structType := structValue.Type()
 
 	for i := 0; i < structType.NumField(); i++ {
@@ -160,6 +164,11 @@ func writeConfigToRegistry(key registry.Key, config any) error {
 		}
 	}
 	return nil
+}
+
+func writeConfigToRegistry(key registry.Key, config any) error {
+	structPtrValue := reflect.ValueOf(config)
+	return writeValueToRegistry(key, structPtrValue)
 }
 
 func ReadConfigFromRegistry(key registry.Key, config any) error {
