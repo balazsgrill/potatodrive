@@ -110,6 +110,8 @@ func (cc *configUI) configPanel(databinder **walk.DataBinder, configProvider bin
 					LineEdit{Text: Bind("GPhotosConfig.ClientSecret")},
 					Label{Text: "RedirectURL:"},
 					LineEdit{Text: Bind("GPhotosConfig.RedirectURL")},
+					Label{Text: "Albums:"},
+					LineEdit{Text: Bind("GPhotosConfig.AlbumFilter")},
 					Label{Text: "Authentication Token:"},
 					Label{Text: "Valid", Visible: Bind("GPhotosHasToken")},
 					Label{Text: "Invalid", Visible: Bind("NotGPhotosHasToken")},

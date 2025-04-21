@@ -16,6 +16,7 @@ type Config struct {
 	ClientSecret string `json:"client_secret" flag:"client-secret" reg:"ClientSecret"`
 	RedirectURL  string `json:"redirect_url" flag:"redirect-url" reg:"RedirectURL"`
 	TokenJson    string `json:"token_json" flag:"token-json" reg:"TokenJson"`
+	AlbumFilter  string `json:"album_filter" flag:"album-filter" reg:"AlbumFilter"`
 }
 
 type TokenPersistence interface {
