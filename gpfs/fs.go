@@ -19,8 +19,9 @@ func aError(context string, err error) error {
 
 type fs struct {
 	*gphotos.Client
-	httpclient *http.Client
-	albumcache map[string]*album
+	httpclient  *http.Client
+	albumcache  map[string]*album
+	albumfilter map[string]bool
 }
 
 type item interface {
@@ -35,10 +36,14 @@ func (f *fs) Chown(name string, uid int, gid int) error {
 
 var ErrReadOnlyFs = errors.New("read-only file system")
 
-func NewFs(client *http.Client) (afero.Fs, error) {
+func NewFs(client *http.Client, albumfilter []string) (afero.Fs, error) {
 	gclient, err := gphotos.NewClient(client)
 	if err != nil {
 		return nil, aError("NewFs", err)
+	}
+	albumFilterMap := make(map[string]bool, len(albumfilter))
+	for _, album := range albumfilter {
+		albumFilterMap[album] = true
 	}
 	return &fs{
 		Client:     gclient,
@@ -72,6 +77,11 @@ func (f *fs) ensureCachedAlbums() error {
 	}
 	f.albumcache = make(map[string]*album, len(albums))
 	for _, album_ := range albums {
+		if len(f.albumfilter) > 0 {
+			if _, ok := f.albumfilter[album_.Title]; !ok {
+				continue
+			}
+		}
 		f.albumcache[album_.Title] = &album{
 			httpclient:        f.httpclient,
 			MediaItemsService: f.Client.MediaItems,

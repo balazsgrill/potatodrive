@@ -3,6 +3,7 @@ package gphotos
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/balazsgrill/potatodrive/gpfs"
 	"github.com/rs/zerolog"
@@ -69,7 +70,8 @@ func (c *Config) ToFileSystem(zerolog.Logger) (afero.Fs, error) {
 	}
 	httpclient := oauthconfig.Client(context.Background(), token)
 	// TODO persist token when updated by the client
-	return gpfs.NewFs(httpclient)
+	afilter := strings.Split(c.AlbumFilter, ",")
+	return gpfs.NewFs(httpclient, afilter)
 }
 
 // Validate implements bindings.BindingConfig.
